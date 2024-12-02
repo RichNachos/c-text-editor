@@ -6,6 +6,7 @@
 #include <termios.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <string.h>
 
 /*** Data ***/
 struct editorConfig {
@@ -18,7 +19,7 @@ struct editorConfig E;
 /*** Defines ***/
 #define CTRL_KEY(c) ((c) & 0x1f)
 
-/*** Header Functions ***/
+/*** Terminal ***/
 void die(const char* s);
 void enableRawTerminalMode();
 void disableRawTerminalMode();
@@ -29,6 +30,15 @@ void editorRefreshScreen();
 void editorDrawRows();
 int getWindowSize(int*, int*);
 void initEditor();
+
+/*** Append Buffer ***/
+struct append_buffer {
+    char *buf;
+    int len;
+};
+
+#define ABUF_INIT {NULL, 0}
+void buffer_append(struct append_buffer *ab, const char *s, int len);
 
 /*** Init ***/
 void initEditor() {
@@ -141,4 +151,21 @@ int getWindowSize(int* cols, int* rows) {
     *cols = window_size.ws_col;
     *rows = window_size.ws_row;
     return 0;
+}
+
+void buffer_append(struct append_buffer *ab, const char *s, int len) {
+    char* new = realloc(ab->buf, ab->len + len);
+
+    if (new == NULL) {
+        die("buffer_append realloc failed");
+        return;
+    }
+
+    memcpy(&new[ab->len], s, len);
+    ab->buf = new;
+    ab->len += len;
+}
+
+void buffer_free(struct append_buffer *ab) {
+    free(ab->buf);
 }
