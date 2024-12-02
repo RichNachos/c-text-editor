@@ -20,6 +20,7 @@ void disableRawTerminalMode();
 char editorReadKey();
 void editorProcessKeypress();
 void editorRefreshScreen();
+void editorDrawRows();
 
 /*** Init ***/
 int main(void) {
@@ -101,4 +102,12 @@ void editorProcessKeypress() {
 void editorRefreshScreen() {
     write(STDOUT_FILENO, "\x1b[2J", 4);
     write(STDOUT_FILENO, "\x1b[H", 3);
+    editorDrawRows();
+    write(STDOUT_FILENO, "\x1b[H;1", 3);
+}
+
+void editorDrawRows() {
+    for (int i = 0; i < 24; i++) {
+        write(STDOUT_FILENO, "~\r\n", 3);
+    }
 }
