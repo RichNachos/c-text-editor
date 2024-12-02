@@ -19,6 +19,8 @@ int main(void) {
         write(STDOUT_FILENO, &c, 1);
     }
     
+    // Write a line after quitting program
+    write(STDOUT_FILENO, "\n", 1);
     return 0;
 }
 
@@ -31,7 +33,7 @@ void enableRawTerminalMode() {
     ORIGINAL_TERMIOS = raw;
     atexit(disableRawTerminalMode);
 
-    raw.c_lflag &= ~(ECHO);
+    raw.c_lflag &= ~(ECHO | ICANON);
 
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
