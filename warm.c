@@ -3,11 +3,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <errno.h>
 
 char QUIT_KEY = 'q';
 
 struct termios ORIGINAL_TERMIOS;
 
+void die(const char* s);
 void enableRawTerminalMode();
 void disableRawTerminalMode();
 
@@ -17,7 +19,10 @@ int main(void) {
     // Read until 'q' char or EOF
     while(1) {
         char c = '\0';
-        read(STDIN_FILENO, &c, 1);
+        
+        if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) {
+            die("read failed");
+        }
 
         if (iscntrl(c)) {
             printf("%d\r\n", c);
@@ -33,12 +38,19 @@ int main(void) {
     return 0;
 }
 
+// Error handling
+void die(const char* s) {
+    perror(s);
+    exit(1);
+}
 
 // Disables "Cooked" mode of the terminal
 void enableRawTerminalMode() {
     struct termios raw;
 
-    tcgetattr(STDIN_FILENO, &raw);
+    if (tcgetattr(STDIN_FILENO, &raw) == -1) {
+        die("tcgetattr failed");
+    }
     ORIGINAL_TERMIOS = raw;
     atexit(disableRawTerminalMode);
 
@@ -49,10 +61,14 @@ void enableRawTerminalMode() {
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME] = 1;
 
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) {
+        die("tcsetattr failed");
+    }
 }
 
 // Enables the original configuration of the terminal
 void disableRawTerminalMode() {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &ORIGINAL_TERMIOS);
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ORIGINAL_TERMIOS) == -1) {
+        die("tcsetattr failed");
+    }
 }
