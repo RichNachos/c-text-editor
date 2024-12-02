@@ -1,3 +1,4 @@
+/*** Includes ***/
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,14 +6,16 @@
 #include <termios.h>
 #include <errno.h>
 
+/*** Data ***/
 char QUIT_KEY = 'q';
-
 struct termios ORIGINAL_TERMIOS;
 
+/*** Header Functions ***/
 void die(const char* s);
 void enableRawTerminalMode();
 void disableRawTerminalMode();
 
+/*** Init ***/
 int main(void) {
     enableRawTerminalMode();
 
@@ -37,6 +40,8 @@ int main(void) {
     
     return 0;
 }
+
+/*** Terminal ***/
 
 // Error handling
 void die(const char* s) {
