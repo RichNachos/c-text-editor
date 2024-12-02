@@ -5,10 +5,13 @@
 #include <unistd.h>
 #include <termios.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 
 /*** Data ***/
 struct editorConfig {
-  struct termios ORIGINAL_TERMIOS;
+    int screen_rows;
+    int screen_cols;
+    struct termios ORIGINAL_TERMIOS;
 };
 struct editorConfig E;
 
@@ -24,8 +27,16 @@ char editorReadKey();
 void editorProcessKeypress();
 void editorRefreshScreen();
 void editorDrawRows();
+int getWindowSize(int*, int*);
+void initEditor();
 
 /*** Init ***/
+void initEditor() {
+    if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
+        die("getWindowSize failed");
+    }
+}
+
 int main(void) {
     enableRawTerminalMode();
 
@@ -113,4 +124,16 @@ void editorDrawRows() {
     for (int i = 0; i < 24; i++) {
         write(STDOUT_FILENO, "~\r\n", 3);
     }
+}
+
+int getWindowSize(int* cols, int* rows) {
+    struct winsize window_size;
+
+    if (ioctl(STDERR_FILENO, TIOCGWINSZ, &window_size) == -1 || window_size.ws_col == 0) {
+        return -1;
+    }
+
+    *cols = window_size.ws_col;
+    *rows = window_size.ws_row;
+    return 0;
 }
