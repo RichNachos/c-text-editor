@@ -25,8 +25,6 @@ int main(void) {
         }
     }
     
-    // Write a line after quitting program
-    printf("\r\n");
     return 0;
 }
 
