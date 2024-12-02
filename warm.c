@@ -19,14 +19,14 @@ int main(void) {
     // Read until 'q' char or EOF
     while(read(STDIN_FILENO, &c, 1) && c != QUIT_KEY) {
         if (iscntrl(c)) {
-            printf("%d\n", c);
+            printf("%d\r\n", c);
         } else {
-            printf("%d ('%c')\n", c, c);
+            printf("%d ('%c')\r\n", c, c);
         }
     }
     
     // Write a line after quitting program
-    printf("\n");
+    printf("\r\n");
     return 0;
 }
 
