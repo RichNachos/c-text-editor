@@ -7,7 +7,6 @@
 #include <errno.h>
 
 /*** Data ***/
-char QUIT_KEY = 'q';
 struct termios ORIGINAL_TERMIOS;
 
 /*** Defines ***/
@@ -18,27 +17,16 @@ void die(const char* s);
 void enableRawTerminalMode();
 void disableRawTerminalMode();
 
+char editorReadKey();
+void editorProcessKeypress();
+
 /*** Init ***/
 int main(void) {
     enableRawTerminalMode();
 
     // Read until 'q' char or EOF
     while(1) {
-        char c = '\0';
-        
-        if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) {
-            die("read failed");
-        }
-
-        if (iscntrl(c)) {
-            printf("%d\r\n", c);
-        } else {
-            printf("%d ('%c')\r\n", c, c);
-        }
-
-        if (c == CTRL_KEY(QUIT_KEY)) {
-            break;
-        }
+        editorProcessKeypress();
     }
     
     return 0;
@@ -78,5 +66,26 @@ void enableRawTerminalMode() {
 void disableRawTerminalMode() {
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ORIGINAL_TERMIOS) == -1) {
         die("tcsetattr failed");
+    }
+}
+
+char editorReadKey() {
+    int nread;
+    char c = '\0';
+    while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
+        if (nread == -1 && errno != EAGAIN) {
+            die("read failed");
+        }
+    }
+    return c;
+}
+
+void editorProcessKeypress() {
+    char c = editorReadKey();
+
+    switch (c) {
+        case CTRL_KEY('q'):
+            exit(0);
+            break;
     }
 }
