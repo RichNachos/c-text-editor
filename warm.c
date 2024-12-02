@@ -26,7 +26,7 @@ int main(void) {
     }
     
     // Write a line after quitting program
-    write(STDOUT_FILENO, "\n", 1);
+    printf("\n");
     return 0;
 }
 
