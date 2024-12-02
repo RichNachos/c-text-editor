@@ -14,6 +14,7 @@ int main(void) {
 
     char c;
 
+    // Read until 'q' char or EOF
     while(read(STDIN_FILENO, &c, 1) && c != QUIT_KEY) {
         write(STDOUT_FILENO, &c, 1);
     }
@@ -29,7 +30,7 @@ void enableRawTerminalMode() {
     tcgetattr(STDIN_FILENO, &raw);
     ORIGINAL_TERMIOS = raw;
     atexit(disableRawTerminalMode);
-    
+
     raw.c_lflag &= ~(ECHO);
 
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
