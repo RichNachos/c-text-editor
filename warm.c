@@ -130,10 +130,12 @@ void editorProcessKeypress() {
 void editorRefreshScreen() {
     struct append_buffer ab = ABUF_INIT;
 
+    buffer_append(&ab, "\x1b[?25l", 6);
     buffer_append(&ab, "\x1b[2J", 4);
     buffer_append(&ab, "\x1b[H", 3);
     editorDrawRows(&ab);
     buffer_append(&ab, "\x1b[H", 3);
+    buffer_append(&ab, "\x1b[?25l", 6);
 
     write(STDOUT_FILENO, ab.buf, ab.len);
     buffer_free(&ab);
