@@ -10,6 +10,9 @@
 char QUIT_KEY = 'q';
 struct termios ORIGINAL_TERMIOS;
 
+/*** Defines ***/
+#define CTRL_KEY(c) ((c) & 0x1f)
+
 /*** Header Functions ***/
 void die(const char* s);
 void enableRawTerminalMode();
@@ -33,7 +36,7 @@ int main(void) {
             printf("%d ('%c')\r\n", c, c);
         }
 
-        if (c == QUIT_KEY) {
+        if (c == CTRL_KEY(QUIT_KEY)) {
             break;
         }
     }
