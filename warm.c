@@ -1,3 +1,5 @@
+#include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
@@ -16,7 +18,11 @@ int main(void) {
 
     // Read until 'q' char or EOF
     while(read(STDIN_FILENO, &c, 1) && c != QUIT_KEY) {
-        write(STDOUT_FILENO, &c, 1);
+        if (iscntrl(c)) {
+            printf("%d\n", c);
+        } else {
+            printf("%d ('%c')\n", c, c);
+        }
     }
     
     // Write a line after quitting program
