@@ -17,6 +17,8 @@ struct editorConfig {
 struct editorConfig E;
 
 /*** Defines ***/
+#define WARM_VERSION "0.1.0"
+
 #define CTRL_KEY(c) ((c) & 0x1f)
 
 /*** Terminal ***/
@@ -143,7 +145,18 @@ void editorRefreshScreen() {
 void editorDrawRows(struct append_buffer* ab) {
 
     for (int i = 0; i < E.screen_rows; i++) {
-        buffer_append(ab, "~", 1);
+        if (i == E.screen_rows / 3) {
+            char welcome[80];
+
+            int welcome_length = snprintf(welcome, sizeof(welcome), "Warm Editor -- version %s", WARM_VERSION);
+            if (welcome_length > E.screen_cols) {
+                welcome_length = E.screen_cols;
+            }
+
+            buffer_append(ab, welcome, welcome_length);
+        } else {
+            buffer_append(ab, "~", 1);
+        }
 
         buffer_append(ab, "\x1b[K", 3);
         if (i < E.screen_rows - 1) {
