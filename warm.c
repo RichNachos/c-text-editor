@@ -7,7 +7,10 @@
 #include <errno.h>
 
 /*** Data ***/
-struct termios ORIGINAL_TERMIOS;
+struct editorConfig {
+  struct termios ORIGINAL_TERMIOS;
+};
+struct editorConfig E;
 
 /*** Defines ***/
 #define CTRL_KEY(c) ((c) & 0x1f)
@@ -53,7 +56,7 @@ void enableRawTerminalMode() {
     if (tcgetattr(STDIN_FILENO, &raw) == -1) {
         die("tcgetattr failed");
     }
-    ORIGINAL_TERMIOS = raw;
+    E.ORIGINAL_TERMIOS = raw;
     atexit(disableRawTerminalMode);
 
     raw.c_iflag &= ~(ICRNL | IXON | BRKINT | ISTRIP | INPCK);
@@ -70,7 +73,7 @@ void enableRawTerminalMode() {
 
 // Enables the original configuration of the terminal
 void disableRawTerminalMode() {
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ORIGINAL_TERMIOS) == -1) {
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.ORIGINAL_TERMIOS) == -1) {
         die("tcsetattr failed");
     }
 }
