@@ -24,13 +24,6 @@ void die(const char* s);
 void enableRawTerminalMode();
 void disableRawTerminalMode();
 
-char editorReadKey();
-void editorProcessKeypress();
-void editorRefreshScreen();
-void editorDrawRows();
-int getWindowSize(int*, int*);
-void initEditor();
-
 /*** Append Buffer ***/
 struct append_buffer {
     char *buf;
@@ -39,6 +32,14 @@ struct append_buffer {
 
 #define ABUF_INIT {NULL, 0}
 void buffer_append(struct append_buffer *ab, const char *s, int len);
+
+/*** Output ***/
+char editorReadKey();
+void editorProcessKeypress();
+void editorRefreshScreen();
+void editorDrawRows(struct append_buffer *ab);
+int getWindowSize(int*, int*);
+void initEditor();
 
 /*** Init ***/
 void initEditor() {
@@ -125,18 +126,22 @@ void editorProcessKeypress() {
 }
 
 void editorRefreshScreen() {
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 3);
-    editorDrawRows();
-    write(STDOUT_FILENO, "\x1b[H;1", 3);
+    struct append_buffer ab = ABUF_INIT;
+
+    buffer_append(&ab, "\x1b[2j", 4);
+    buffer_append(&ab, "\x1b[H", 3);
+    editorDrawRows(&ab);
+    buffer_append(&ab, "\x1b[H", 3);
 }
 
-void editorDrawRows() {
+void editorDrawRows(struct append_buffer* ab) {
+
     for (int i = 0; i < E.screen_rows; i++) {
+        buffer_append(ab, "~", 1);
         write(STDOUT_FILENO, "~", 1);
 
         if (i < E.screen_rows - 1) {
-            write(STDERR_FILENO, "\r\n", 2);
+            buffer_append(ab, "\r\n", 2);
         }
     }
 }
