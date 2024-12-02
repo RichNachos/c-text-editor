@@ -123,7 +123,11 @@ void editorRefreshScreen() {
 
 void editorDrawRows() {
     for (int i = 0; i < E.screen_rows; i++) {
-        write(STDOUT_FILENO, "~\r\n", 3);
+        write(STDOUT_FILENO, "~", 1);
+
+        if (i < E.screen_rows - 1) {
+            write(STDERR_FILENO, "\r\n", 2);
+        }
     }
 }
 
