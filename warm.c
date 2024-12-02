@@ -32,6 +32,7 @@ struct append_buffer {
 
 #define ABUF_INIT {NULL, 0}
 void buffer_append(struct append_buffer *ab, const char *s, int len);
+void buffer_free(struct append_buffer *ab);
 
 /*** Output ***/
 char editorReadKey();
@@ -39,9 +40,10 @@ void editorProcessKeypress();
 void editorRefreshScreen();
 void editorDrawRows(struct append_buffer *ab);
 int getWindowSize(int*, int*);
-void initEditor();
 
 /*** Init ***/
+void initEditor();
+
 void initEditor() {
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
         die("getWindowSize failed");
@@ -128,17 +130,19 @@ void editorProcessKeypress() {
 void editorRefreshScreen() {
     struct append_buffer ab = ABUF_INIT;
 
-    buffer_append(&ab, "\x1b[2j", 4);
+    buffer_append(&ab, "\x1b[2J", 4);
     buffer_append(&ab, "\x1b[H", 3);
     editorDrawRows(&ab);
     buffer_append(&ab, "\x1b[H", 3);
+
+    write(STDOUT_FILENO, ab.buf, ab.len);
+    buffer_free(&ab);
 }
 
 void editorDrawRows(struct append_buffer* ab) {
 
     for (int i = 0; i < E.screen_rows; i++) {
         buffer_append(ab, "~", 1);
-        write(STDOUT_FILENO, "~", 1);
 
         if (i < E.screen_rows - 1) {
             buffer_append(ab, "\r\n", 2);
