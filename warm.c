@@ -39,7 +39,7 @@ void enableRawTerminalMode() {
     ORIGINAL_TERMIOS = raw;
     atexit(disableRawTerminalMode);
 
-    raw.c_lflag &= ~(ECHO | ICANON);
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
 
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
