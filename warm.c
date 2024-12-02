@@ -19,6 +19,7 @@ void disableRawTerminalMode();
 
 char editorReadKey();
 void editorProcessKeypress();
+void editorRefreshScreen();
 
 /*** Init ***/
 int main(void) {
@@ -26,6 +27,7 @@ int main(void) {
 
     // Read until 'q' char or EOF
     while(1) {
+        editorRefreshScreen();
         editorProcessKeypress();
     }
     
@@ -69,6 +71,7 @@ void disableRawTerminalMode() {
     }
 }
 
+/*** Input ***/
 char editorReadKey() {
     int nread;
     char c = '\0';
@@ -88,4 +91,8 @@ void editorProcessKeypress() {
             exit(0);
             break;
     }
+}
+
+void editorRefreshScreen() {
+    write(STDOUT_FILENO, "\x1b[2J", 4);
 }
