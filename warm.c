@@ -39,6 +39,7 @@ void initEditor() {
 
 int main(void) {
     enableRawTerminalMode();
+    initEditor();
 
     // Read until 'q' char or EOF
     while(1) {
