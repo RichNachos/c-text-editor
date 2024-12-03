@@ -1,4 +1,9 @@
 /*** Includes ***/
+
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,7 +74,7 @@ int getWindowSize(int*, int*);
 void editorMoveCursor(int key);
 
 /*** File I/O ***/
-void editorOpen();
+void editorOpen(char* filename);
 
 /*** Init ***/
 void initEditor();
@@ -83,10 +88,12 @@ void initEditor() {
     }
 }
 
-int main(void) {
+int main(int argc, char* argv[]) {
     enableRawTerminalMode();
     initEditor();
-    editorOpen();
+    if (argc >= 2) {
+        editorOpen(argv[1]);
+    }
 
     // Read until 'q' char or EOF
     while(1) {
@@ -323,13 +330,31 @@ void editorMoveCursor(int key) {
     if (E.cursor_y == E.screen_rows) E.cursor_y = E.screen_rows - 1;
 }
 
-void editorOpen() {
-    char* line = "Example line";
-    ssize_t line_length = strlen(line);
+void editorOpen(char* filename) {
+    FILE* fp = fopen(filename, "r");
+    
+    if (!fp) {
+        die("fopen failed");
+    }
 
-    E.row.size = line_length;
-    E.row.line = malloc(line_length + 1);
-    memcpy(E.row.line, line, line_length);
-    E.row.line[line_length] = '\0';
-    E.num_rows = 1;
+    char* line = NULL;
+    size_t line_cap = 0;
+    ssize_t line_length;
+
+    line_length = getline(&line, &line_cap, fp);
+    
+    if (line_length != -1) {
+        while (line_length > 0 && (line[line_length - 1] == '\n' || line[line_length - 1] == '\r')) {
+            line_length--;
+        }
+
+        E.row.size = line_length;
+        E.row.line = malloc(line_length + 1);
+        memcpy(E.row.line, line, line_length);
+        E.row.line[line_length] = '\0';
+        E.num_rows = 1;
+    }
+
+    free(line);
+    fclose(fp);
 }
