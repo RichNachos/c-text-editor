@@ -247,7 +247,7 @@ void editorDrawRows(struct append_buffer* ab) {
 
     for (int i = 0; i < E.screen_rows; i++) {
         if (i >= E.num_rows) {
-            if (i == E.screen_rows / 3) {
+            if (i == E.screen_rows / 3 && E.num_rows == 0) {
                 char welcome[80];
 
                 int welcome_length = snprintf(welcome, sizeof(welcome), "Warm Editor -- version %s", WARM_VERSION);
