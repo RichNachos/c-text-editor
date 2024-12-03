@@ -245,7 +245,7 @@ void editorRefreshScreen() {
     editorDrawRows(&ab);
     
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cursor_y - E.row_offest + 1, E.cursor_x + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cursor_y - E.row_offest + 1, E.cursor_x - E.col_offset + 1);
     buffer_append(&ab, buf, strlen(buf));
 
     buffer_append(&ab, "\x1b[?25h", 6);
