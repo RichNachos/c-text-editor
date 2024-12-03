@@ -343,6 +343,13 @@ void editorMoveCursor(int key) {
                 E.cursor_x++;
             break;
     }
+
+    row = (E.cursor_y >= E.num_rows) ? NULL : &E.row[E.cursor_y];
+
+    int row_length = row ? row->size : 0;
+    if (E.cursor_x > row_length) {
+        E.cursor_x = row_length;
+    }
 }
 
 void editorOpen(char* filename) {
