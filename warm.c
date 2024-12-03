@@ -6,14 +6,22 @@
 #include <termios.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <string.h>
 
 /*** Data ***/
+typedef struct editorRow {
+  int size;
+  char *line;
+} editorRow;
+
 struct editorConfig {
     int cursor_x;
     int cursor_y;
     int screen_rows;
     int screen_cols;
+    int num_rows;
+    struct editorRow row;
     struct termios ORIGINAL_TERMIOS;
 };
 struct editorConfig E;
@@ -60,12 +68,16 @@ int getWindowSize(int*, int*);
 /*** Input ***/
 void editorMoveCursor(int key);
 
+/*** File I/O ***/
+void editorOpen();
+
 /*** Init ***/
 void initEditor();
 
 void initEditor() {
     E.cursor_x = 0;
     E.cursor_y = 0;
+    E.num_rows = 0;
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
         die("getWindowSize failed");
     }
@@ -74,6 +86,7 @@ void initEditor() {
 int main(void) {
     enableRawTerminalMode();
     initEditor();
+    editorOpen();
 
     // Read until 'q' char or EOF
     while(1) {
@@ -302,4 +315,15 @@ void editorMoveCursor(int key) {
     if (E.cursor_y < 0) E.cursor_y = 0;
     if (E.cursor_x == E.screen_cols) E.cursor_x = E.screen_cols - 1;
     if (E.cursor_y == E.screen_rows) E.cursor_y = E.screen_rows - 1;
+}
+
+void editorOpen() {
+    char* line = "Example line";
+    ssize_t line_length = strlen(line);
+
+    E.row.size = line_length;
+    E.row.line = malloc(line_length + 1);
+    memcpy(E.row.line, line, line_length);
+    E.row.line[line_length] = '\0';
+    E.num_rows = 1;
 }
