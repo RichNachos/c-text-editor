@@ -70,6 +70,7 @@ void editorProcessKeypress();
 void editorRefreshScreen();
 void editorDrawRows(struct append_buffer *ab);
 int getWindowSize(int*, int*);
+void editorScroll();
 
 /*** Input ***/
 void editorMoveCursor(int key);
@@ -232,6 +233,8 @@ void editorProcessKeypress() {
 }
 
 void editorRefreshScreen() {
+    editorScroll();
+
     struct append_buffer ab = ABUF_INIT;
 
     buffer_append(&ab, "\x1b[?25l", 6);
@@ -240,7 +243,7 @@ void editorRefreshScreen() {
     editorDrawRows(&ab);
     
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cursor_y + 1, E.cursor_x + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cursor_y - E.row_offest + 1, E.cursor_x + 1);
     buffer_append(&ab, buf, strlen(buf));
 
     buffer_append(&ab, "\x1b[?25h", 6);
@@ -334,7 +337,7 @@ void editorMoveCursor(int key) {
     if (E.cursor_x < 0) E.cursor_x = 0;
     if (E.cursor_y < 0) E.cursor_y = 0;
     if (E.cursor_x == E.screen_cols) E.cursor_x = E.screen_cols - 1;
-    if (E.cursor_y == E.screen_rows) E.cursor_y = E.screen_rows - 1;
+    if (E.cursor_y == E.num_rows) E.cursor_y = E.num_rows - 1;
 }
 
 void editorOpen(char* filename) {
@@ -369,4 +372,13 @@ void editorAppendRow(char *s, size_t len) {
     memcpy(E.row[at].line, s, len);
     E.row[at].line[len] = '\0';
     E.num_rows++;
+}
+
+void editorScroll() {
+    if (E.cursor_y < E.row_offest) {
+        E.row_offest = E.cursor_y;
+    }
+    if (E.cursor_y >= E.row_offest + E.screen_rows) {
+        E.row_offest = E.cursor_y - E.screen_rows + 1;
+    }
 }
