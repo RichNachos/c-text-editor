@@ -183,13 +183,10 @@ void editorProcessKeypress() {
             exit(0);
             break;
         case PAGE_UP:
+            E.cursor_y = 0;
+            break;
         case PAGE_DOWN:
-            {
-                int times = E.screen_rows;
-                while (times--) {
-                    editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
-                }
-            }
+            E.cursor_y = E.screen_rows - 1;
             break;
         case HOME_KEY:
             E.cursor_x = 0;
