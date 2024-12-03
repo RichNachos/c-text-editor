@@ -45,6 +45,9 @@ void editorRefreshScreen();
 void editorDrawRows(struct append_buffer *ab);
 int getWindowSize(int*, int*);
 
+/*** Input ***/
+void editorMoveCursor(char key);
+
 /*** Init ***/
 void initEditor();
 
@@ -130,6 +133,12 @@ void editorProcessKeypress() {
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
             break;
+        case 'w':
+        case 'a':
+        case 's':
+        case 'd':
+            editorMoveCursor(c);
+            break;
     }
 }
 
@@ -209,4 +218,21 @@ void buffer_append(struct append_buffer *ab, const char *s, int len) {
 
 void buffer_free(struct append_buffer *ab) {
     free(ab->buf);
+}
+
+void editorMoveCursor(char key) {
+    switch (key) {
+        case 'w':
+            E.cursor_y--;
+            break;
+        case 'a':
+            E.cursor_x--;
+            break;
+        case 's':
+            E.cursor_y++;
+            break;
+        case 'd':
+            E.cursor_x++;
+            break;
+    }
 }
