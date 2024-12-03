@@ -26,7 +26,7 @@ struct editorConfig {
     int screen_rows;
     int screen_cols;
     int num_rows;
-    struct editorRow row;
+    struct editorRow* row;
     struct termios ORIGINAL_TERMIOS;
 };
 struct editorConfig E;
@@ -73,6 +73,9 @@ int getWindowSize(int*, int*);
 /*** Input ***/
 void editorMoveCursor(int key);
 
+/*** Row Operations ***/
+void editorAppendRow(char *s, size_t len);
+
 /*** File I/O ***/
 void editorOpen(char* filename);
 
@@ -83,6 +86,7 @@ void initEditor() {
     E.cursor_x = 0;
     E.cursor_y = 0;
     E.num_rows = 0;
+    E.row = NULL;
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
         die("getWindowSize failed");
     }
@@ -268,9 +272,9 @@ void editorDrawRows(struct append_buffer* ab) {
                 buffer_append(ab, "~", 1);
             }
         } else {
-            int length = E.row.size;
+            int length = E.row[i].size;
             if (length > E.screen_cols) length = E.screen_cols;
-            buffer_append(ab, E.row.line, length);
+            buffer_append(ab, E.row[i].line, length);
         }
 
         buffer_append(ab, "\x1b[K", 3);
@@ -341,20 +345,25 @@ void editorOpen(char* filename) {
     size_t line_cap = 0;
     ssize_t line_length;
 
-    line_length = getline(&line, &line_cap, fp);
-    
-    if (line_length != -1) {
+    while ((line_length = getline(&line, &line_cap, fp)) != -1) {
         while (line_length > 0 && (line[line_length - 1] == '\n' || line[line_length - 1] == '\r')) {
             line_length--;
         }
-
-        E.row.size = line_length;
-        E.row.line = malloc(line_length + 1);
-        memcpy(E.row.line, line, line_length);
-        E.row.line[line_length] = '\0';
-        E.num_rows = 1;
+        editorAppendRow(line, line_length);
     }
 
     free(line);
     fclose(fp);
+}
+
+void editorAppendRow(char *s, size_t len) {
+    E.row = realloc(E.row, sizeof(editorRow) * (E.num_rows + 1));
+
+    int at = E.num_rows;
+
+    E.row[at].size = len;
+    E.row[at].line = malloc(len + 1);
+    memcpy(E.row[at].line, s, len);
+    E.row[at].line[len] = '\0';
+    E.num_rows++;
 }
