@@ -10,6 +10,8 @@
 
 /*** Data ***/
 struct editorConfig {
+    int cursor_x;
+    int cursor_y;
     int screen_rows;
     int screen_cols;
     struct termios ORIGINAL_TERMIOS;
@@ -47,6 +49,8 @@ int getWindowSize(int*, int*);
 void initEditor();
 
 void initEditor() {
+    E.cursor_x = 0;
+    E.cursor_y = 0;
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
         die("getWindowSize failed");
     }
@@ -134,8 +138,13 @@ void editorRefreshScreen() {
 
     buffer_append(&ab, "\x1b[?25l", 6);
     buffer_append(&ab, "\x1b[H", 3);
+    
     editorDrawRows(&ab);
-    buffer_append(&ab, "\x1b[H", 3);
+    
+    char buf[32];
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cursor_y + 1, E.cursor_x + 1);
+    buffer_append(&ab, buf, strlen(buf));
+
     buffer_append(&ab, "\x1b[?25h", 6);
 
     write(STDOUT_FILENO, ab.buf, ab.len);
