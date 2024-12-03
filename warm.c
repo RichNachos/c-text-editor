@@ -24,10 +24,10 @@ struct editorConfig E;
 #define CTRL_KEY(c) ((c) & 0x1f)
 
 enum editorKey {
-  ARROW_LEFT = 'a',
-  ARROW_RIGHT = 'd',
-  ARROW_UP = 'w',
-  ARROW_DOWN = 's'
+  ARROW_LEFT = 1000,
+  ARROW_RIGHT,
+  ARROW_UP,
+  ARROW_DOWN
 };
 
 /*** Terminal ***/
@@ -46,14 +46,14 @@ void buffer_append(struct append_buffer *ab, const char *s, int len);
 void buffer_free(struct append_buffer *ab);
 
 /*** Output ***/
-char editorReadKey();
+int editorReadKey();
 void editorProcessKeypress();
 void editorRefreshScreen();
 void editorDrawRows(struct append_buffer *ab);
 int getWindowSize(int*, int*);
 
 /*** Input ***/
-void editorMoveCursor(char key);
+void editorMoveCursor(int key);
 
 /*** Init ***/
 void initEditor();
@@ -120,7 +120,7 @@ void disableRawTerminalMode() {
 }
 
 /*** Input ***/
-char editorReadKey() {
+int editorReadKey() {
     int nread;
     char c = '\0';
     while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
@@ -131,15 +131,15 @@ char editorReadKey() {
     if (c == '\x1b') {
         char sequence[3];
 
-        if (read(STDIN_FILENO, sequence, 1) != 1) return '\x1b';
-        if (read(STDIN_FILENO, sequence, 1) != 1) return '\x1b';
+        if (read(STDIN_FILENO, &sequence[0], 1) != 1) return '\x1b';
+        if (read(STDIN_FILENO, &sequence[1], 1) != 1) return '\x1b';
 
         if (sequence[0] == '[') {
             switch (sequence[1]) {
                 case 'A': return ARROW_UP;
-                case 'B': return ARROW_LEFT;
-                case 'C': return ARROW_DOWN;
-                case 'D': return ARROW_RIGHT;
+                case 'B': return ARROW_DOWN;
+                case 'C': return ARROW_RIGHT;
+                case 'D': return ARROW_LEFT;
             }
         }
     }
@@ -148,7 +148,7 @@ char editorReadKey() {
 }
 
 void editorProcessKeypress() {
-    char c = editorReadKey();
+    int c = editorReadKey();
 
     switch (c) {
         case CTRL_KEY('q'):
@@ -243,7 +243,7 @@ void buffer_free(struct append_buffer *ab) {
     free(ab->buf);
 }
 
-void editorMoveCursor(char key) {
+void editorMoveCursor(int key) {
     switch (key) {
         case ARROW_UP:
             E.cursor_y--;
@@ -258,4 +258,8 @@ void editorMoveCursor(char key) {
             E.cursor_x++;
             break;
     }
+    if (E.cursor_x < 0) E.cursor_x = 0;
+    if (E.cursor_y < 0) E.cursor_y = 0;
+    if (E.cursor_x == E.screen_cols) E.cursor_x = E.screen_cols - 1;
+    if (E.cursor_y == E.screen_rows) E.cursor_y = E.screen_rows - 1;
 }
