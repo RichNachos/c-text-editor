@@ -152,6 +152,14 @@ void editorDrawRows(struct append_buffer* ab) {
             if (welcome_length > E.screen_cols) {
                 welcome_length = E.screen_cols;
             }
+            int padding = (E.screen_cols - welcome_length) / 2;
+            if (padding) {
+                buffer_append(ab, "~", 1);
+                padding--;
+            }
+            while (padding--) {
+                buffer_append(ab, " ", 1);
+            }
 
             buffer_append(ab, welcome, welcome_length);
         } else {
