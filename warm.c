@@ -333,6 +333,10 @@ void editorMoveCursor(int key) {
         case ARROW_LEFT:
             if (E.cursor_x != 0)
                 E.cursor_x--;
+            else if (E.cursor_y > 0) {
+                E.cursor_y--;
+                E.cursor_x = E.row[E.cursor_y].size;
+            }
             break;
         case ARROW_DOWN:
             if (E.cursor_y < E.num_rows)
