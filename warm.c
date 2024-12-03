@@ -23,6 +23,7 @@ typedef struct editorRow {
 struct editorConfig {
     int cursor_x;
     int cursor_y;
+    int col_offset;
     int row_offest;
     int screen_rows;
     int screen_cols;
@@ -87,6 +88,7 @@ void initEditor();
 void initEditor() {
     E.cursor_x = 0;
     E.cursor_y = 0;
+    E.col_offset = 0;
     E.row_offest = 0;
     E.num_rows = 0;
     E.row = NULL;
@@ -278,9 +280,10 @@ void editorDrawRows(struct append_buffer* ab) {
                 buffer_append(ab, "~", 1);
             }
         } else {
-            int length = E.row[file_row].size;
+            int length = E.row[file_row].size - E.col_offset;
+            if (length < 0) length = 0;
             if (length > E.screen_cols) length = E.screen_cols;
-            buffer_append(ab, E.row[file_row].line, length);
+            buffer_append(ab, &E.row[file_row].line[E.col_offset], length);
         }
 
         buffer_append(ab, "\x1b[K", 3);
@@ -336,7 +339,6 @@ void editorMoveCursor(int key) {
     }
     if (E.cursor_x < 0) E.cursor_x = 0;
     if (E.cursor_y < 0) E.cursor_y = 0;
-    if (E.cursor_x == E.screen_cols) E.cursor_x = E.screen_cols - 1;
     if (E.cursor_y == E.num_rows) E.cursor_y = E.num_rows - 1;
 }
 
@@ -380,5 +382,11 @@ void editorScroll() {
     }
     if (E.cursor_y >= E.row_offest + E.screen_rows) {
         E.row_offest = E.cursor_y - E.screen_rows + 1;
+    }
+    if (E.cursor_x < E.col_offset) {
+        E.col_offset = E.cursor_x;
+    }
+    if (E.cursor_x >= E.col_offset + E.screen_cols) {
+        E.col_offset = E.cursor_x - E.screen_cols + 1;
     }
 }
