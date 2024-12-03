@@ -23,6 +23,7 @@ typedef struct editorRow {
 struct editorConfig {
     int cursor_x;
     int cursor_y;
+    int row_offest;
     int screen_rows;
     int screen_cols;
     int num_rows;
@@ -85,6 +86,7 @@ void initEditor();
 void initEditor() {
     E.cursor_x = 0;
     E.cursor_y = 0;
+    E.row_offest = 0;
     E.num_rows = 0;
     E.row = NULL;
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
@@ -250,7 +252,8 @@ void editorRefreshScreen() {
 void editorDrawRows(struct append_buffer* ab) {
 
     for (int i = 0; i < E.screen_rows; i++) {
-        if (i >= E.num_rows) {
+        int file_row = i + E.row_offest;
+        if (file_row >= E.num_rows) {
             if (i == E.screen_rows / 3 && E.num_rows == 0) {
                 char welcome[80];
 
@@ -272,9 +275,9 @@ void editorDrawRows(struct append_buffer* ab) {
                 buffer_append(ab, "~", 1);
             }
         } else {
-            int length = E.row[i].size;
+            int length = E.row[file_row].size;
             if (length > E.screen_cols) length = E.screen_cols;
-            buffer_append(ab, E.row[i].line, length);
+            buffer_append(ab, E.row[file_row].line, length);
         }
 
         buffer_append(ab, "\x1b[K", 3);
