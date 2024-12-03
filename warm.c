@@ -323,23 +323,26 @@ void buffer_free(struct append_buffer *ab) {
 }
 
 void editorMoveCursor(int key) {
+    editorRow* row = (E.cursor_y >= E.num_rows) ? NULL : &E.row[E.cursor_y];
+
     switch (key) {
         case ARROW_UP:
-            E.cursor_y--;
+            if (E.cursor_y != 0)
+                E.cursor_y--;
             break;
         case ARROW_LEFT:
-            E.cursor_x--;
+            if (E.cursor_x != 0)
+                E.cursor_x--;
             break;
         case ARROW_DOWN:
-            E.cursor_y++;
+            if (E.cursor_y < E.num_rows)
+                E.cursor_y++;
             break;
         case ARROW_RIGHT:
-            E.cursor_x++;
+            if (row && E.cursor_x < row->size)
+                E.cursor_x++;
             break;
     }
-    if (E.cursor_x < 0) E.cursor_x = 0;
-    if (E.cursor_y < 0) E.cursor_y = 0;
-    if (E.cursor_y == E.num_rows) E.cursor_y = E.num_rows - 1;
 }
 
 void editorOpen(char* filename) {
