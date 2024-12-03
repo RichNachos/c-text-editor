@@ -23,6 +23,13 @@ struct editorConfig E;
 
 #define CTRL_KEY(c) ((c) & 0x1f)
 
+enum editorKey {
+  ARROW_LEFT = 'a',
+  ARROW_RIGHT = 'd',
+  ARROW_UP = 'w',
+  ARROW_DOWN = 's'
+};
+
 /*** Terminal ***/
 void die(const char* s);
 void enableRawTerminalMode();
@@ -121,6 +128,22 @@ char editorReadKey() {
             die("read failed");
         }
     }
+    if (c == '\x1b') {
+        char sequence[3];
+
+        if (read(STDIN_FILENO, sequence, 1) != 1) return '\x1b';
+        if (read(STDIN_FILENO, sequence, 1) != 1) return '\x1b';
+
+        if (sequence[0] == '[') {
+            switch (sequence[1]) {
+                case 'A': return ARROW_UP;
+                case 'B': return ARROW_LEFT;
+                case 'C': return ARROW_DOWN;
+                case 'D': return ARROW_RIGHT;
+            }
+        }
+    }
+
     return c;
 }
 
@@ -133,10 +156,10 @@ void editorProcessKeypress() {
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
             break;
-        case 'w':
-        case 'a':
-        case 's':
-        case 'd':
+        case ARROW_UP:
+        case ARROW_LEFT:
+        case ARROW_DOWN:
+        case ARROW_RIGHT:
             editorMoveCursor(c);
             break;
     }
@@ -222,16 +245,16 @@ void buffer_free(struct append_buffer *ab) {
 
 void editorMoveCursor(char key) {
     switch (key) {
-        case 'w':
+        case ARROW_UP:
             E.cursor_y--;
             break;
-        case 'a':
+        case ARROW_LEFT:
             E.cursor_x--;
             break;
-        case 's':
+        case ARROW_DOWN:
             E.cursor_y++;
             break;
-        case 'd':
+        case ARROW_RIGHT:
             E.cursor_x++;
             break;
     }
