@@ -16,8 +16,10 @@
 
 /*** Data ***/
 typedef struct editorRow {
-  int size;
-  char *line;
+    int size;
+    int render_size;
+    char *line;
+    char *render_line;
 } editorRow;
 
 struct editorConfig {
@@ -50,6 +52,8 @@ enum editorKey {
     PAGE_DOWN
 };
 
+int TAB_SIZE = 8;
+
 /*** Terminal ***/
 void die(const char* s);
 void enableRawTerminalMode();
@@ -78,6 +82,7 @@ void editorMoveCursor(int key);
 
 /*** Row Operations ***/
 void editorAppendRow(char *s, size_t len);
+void editorUpdateRow(editorRow* row);
 
 /*** File I/O ***/
 void editorOpen(char* filename);
@@ -280,10 +285,10 @@ void editorDrawRows(struct append_buffer* ab) {
                 buffer_append(ab, "~", 1);
             }
         } else {
-            int length = E.row[file_row].size - E.col_offset;
+            int length = E.row[file_row].render_size - E.col_offset;
             if (length < 0) length = 0;
             if (length > E.screen_cols) length = E.screen_cols;
-            buffer_append(ab, &E.row[file_row].line[E.col_offset], length);
+            buffer_append(ab, &E.row[file_row].render_line[E.col_offset], length);
         }
 
         buffer_append(ab, "\x1b[K", 3);
@@ -391,6 +396,12 @@ void editorAppendRow(char *s, size_t len) {
     E.row[at].line = malloc(len + 1);
     memcpy(E.row[at].line, s, len);
     E.row[at].line[len] = '\0';
+
+    E.row[at].render_size = 0;
+    E.row[at].render_line = NULL;
+
+    editorUpdateRow(&E.row[at]);
+
     E.num_rows++;
 }
 
@@ -407,4 +418,30 @@ void editorScroll() {
     if (E.cursor_x >= E.col_offset + E.screen_cols) {
         E.col_offset = E.cursor_x - E.screen_cols + 1;
     }
+}
+
+void editorUpdateRow(editorRow* row) {
+    if (row->render_line)
+        free(row->render_line);
+
+    int tabs = 0;
+    for (int j = 0; j < row->size; j++) {
+        if (row->line[j] == '\t')
+            tabs++;
+    }
+
+    row->render_line = malloc(row->size + (tabs * (TAB_SIZE - 1)) + 1);
+
+    int idx = 0;
+    for (int j = 0; j < row->size; j++) {
+        if (row->line[j] == '\t') {
+            row->render_line[idx++] = ' ';
+            while (idx % TAB_SIZE != 0)
+                row->render_line[idx++] = ' ';
+        } else {
+            row->render_line[idx++] = row->line[j];
+        }
+    }
+    row->render_line[idx] = '\0';
+    row->render_size = idx;
 }
