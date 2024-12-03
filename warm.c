@@ -239,25 +239,31 @@ void editorRefreshScreen() {
 void editorDrawRows(struct append_buffer* ab) {
 
     for (int i = 0; i < E.screen_rows; i++) {
-        if (i == E.screen_rows / 3) {
-            char welcome[80];
+        if (i >= E.num_rows) {
+            if (i == E.screen_rows / 3) {
+                char welcome[80];
 
-            int welcome_length = snprintf(welcome, sizeof(welcome), "Warm Editor -- version %s", WARM_VERSION);
-            if (welcome_length > E.screen_cols) {
-                welcome_length = E.screen_cols;
-            }
-            int padding = (E.screen_cols - welcome_length) / 2;
-            if (padding) {
+                int welcome_length = snprintf(welcome, sizeof(welcome), "Warm Editor -- version %s", WARM_VERSION);
+                if (welcome_length > E.screen_cols) {
+                    welcome_length = E.screen_cols;
+                }
+                int padding = (E.screen_cols - welcome_length) / 2;
+                if (padding) {
+                    buffer_append(ab, "~", 1);
+                    padding--;
+                }
+                while (padding--) {
+                    buffer_append(ab, " ", 1);
+                }
+
+                buffer_append(ab, welcome, welcome_length);
+            } else {
                 buffer_append(ab, "~", 1);
-                padding--;
             }
-            while (padding--) {
-                buffer_append(ab, " ", 1);
-            }
-
-            buffer_append(ab, welcome, welcome_length);
         } else {
-            buffer_append(ab, "~", 1);
+            int length = E.row.size;
+            if (length > E.screen_cols) length = E.screen_cols;
+            buffer_append(ab, E.row.line, length);
         }
 
         buffer_append(ab, "\x1b[K", 3);
