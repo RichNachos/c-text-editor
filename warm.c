@@ -85,6 +85,7 @@ void editorDrawRows(struct append_buffer *ab);
 int getWindowSize(int*, int*);
 void editorScroll();
 void editorDrawStatusBar(struct append_buffer *ab);
+void editorDrawMessageBar(struct append_buffer *ab);
 void editorSetStatusMessage(const char *fmt, ...);
 
 /*** Input ***/
@@ -115,7 +116,7 @@ void initEditor() {
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
         die("getWindowSize failed");
     }
-    E.screen_rows -= 1; // For status bar
+    E.screen_rows -= 2; // For status bar
 }
 
 int main(int argc, char* argv[]) {
@@ -268,6 +269,7 @@ void editorRefreshScreen() {
     
     editorDrawRows(&ab);
     editorDrawStatusBar(&ab);
+    editorDrawMessageBar(&ab);
     
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cursor_y - E.row_offest + 1, E.render_x - E.col_offset + 1);
@@ -336,6 +338,7 @@ void editorDrawStatusBar(struct append_buffer *ab) {
         length++;
     }
     buffer_append(ab, "\x1b[m", 3);
+    buffer_append(ab, "\r\n", 2);
 }
 
 void editorSetStatusMessage(const char *fmt, ...) {
@@ -344,6 +347,17 @@ void editorSetStatusMessage(const char *fmt, ...) {
     vsnprintf(E.status_message, sizeof(E.status_message), fmt, ap);
     va_end(ap);
     E.status_message_time = time(NULL);
+}
+
+void editorDrawMessageBar(struct append_buffer *ab) {
+    buffer_append(ab, "\x1b[K", 3);
+
+    int message_length = strlen(E.status_message);
+    if (message_length > E.screen_cols)
+        message_length = E.screen_cols; 
+    if (message_length && time(NULL) - E.status_message_time < 5) {
+        buffer_append(ab, E.status_message, message_length);
+    }
 }
 
 int getWindowSize(int* cols, int* rows) {
