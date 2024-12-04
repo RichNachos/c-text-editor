@@ -96,7 +96,7 @@ void editorSetStatusMessage(const char *fmt, ...);
 void editorMoveCursor(int key);
 
 /*** Row Operations ***/
-void editorAppendRow(char *s, size_t len);
+void editorInsertRow(int at, char *s, size_t len);
 void editorDeleteRow(int at);
 void editorFreeRow(editorRow* row);
 void editorUpdateRow(editorRow* row);
@@ -497,7 +497,7 @@ void editorOpen(char* filename) {
         while (line_length > 0 && (line[line_length - 1] == '\n' || line[line_length - 1] == '\r')) {
             line_length--;
         }
-        editorAppendRow(line, line_length);
+        editorInsertRow(E.num_rows, line, line_length);
     }
 
     free(line);
@@ -549,10 +549,11 @@ void editorSave() {
     editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 
-void editorAppendRow(char *s, size_t len) {
-    E.row = realloc(E.row, sizeof(editorRow) * (E.num_rows + 1));
+void editorInsertRow(int at, char *s, size_t len) {
+    if (at < 0 || at > E.num_rows) return;
 
-    int at = E.num_rows;
+    E.row = realloc(E.row, sizeof(editorRow) * (E.num_rows + 1));
+    memmove(&E.row[at + 1], &E.row[at], sizeof(editorRow) * (E.num_rows - at));
 
     E.row[at].size = len;
     E.row[at].line = malloc(len + 1);
@@ -673,7 +674,7 @@ void editorRowAppendString(editorRow *row, char* s, size_t length) {
 
 void editorInsertChar(int c) {
     if (E.cursor_y == E.num_rows) {
-        editorAppendRow("", 0);
+        editorInsertRow(E.num_rows, "", 0);
     }
     editorRowInsertChar(&E.row[E.cursor_y], E.cursor_x, c);
     E.cursor_x++;
