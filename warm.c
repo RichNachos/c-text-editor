@@ -459,7 +459,11 @@ char *editorPrompt(char *prompt) {
 
         int c = editorReadKey();
 
-        if (c == '\x1b') {
+        if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
+            if (length != 0) {
+                buffer[--length] = '\0';
+            }
+        } else if (c == '\x1b') {
             editorSetStatusMessage("");
             free(buffer);
             return NULL;
