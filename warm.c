@@ -25,6 +25,7 @@ typedef struct editorRow {
 struct editorConfig {
     int cursor_x;
     int cursor_y;
+    int render_x;
     int col_offset;
     int row_offest;
     int screen_rows;
@@ -83,6 +84,7 @@ void editorMoveCursor(int key);
 /*** Row Operations ***/
 void editorAppendRow(char *s, size_t len);
 void editorUpdateRow(editorRow* row);
+int editorCursorxToRenderx(editorRow* row, int cursor_x);
 
 /*** File I/O ***/
 void editorOpen(char* filename);
@@ -93,6 +95,7 @@ void initEditor();
 void initEditor() {
     E.cursor_x = 0;
     E.cursor_y = 0;
+    E.render_x = 0; 
     E.col_offset = 0;
     E.row_offest = 0;
     E.num_rows = 0;
@@ -250,7 +253,7 @@ void editorRefreshScreen() {
     editorDrawRows(&ab);
     
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cursor_y - E.row_offest + 1, E.cursor_x - E.col_offset + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cursor_y - E.row_offest + 1, E.render_x - E.col_offset + 1);
     buffer_append(&ab, buf, strlen(buf));
 
     buffer_append(&ab, "\x1b[?25h", 6);
@@ -406,6 +409,11 @@ void editorAppendRow(char *s, size_t len) {
 }
 
 void editorScroll() {
+    E.render_x = 0;
+    if (E.cursor_y < E.num_rows) {
+        E.render_x = editorCursorxToRenderx(&E.row[E.cursor_y], E.cursor_x);
+    }
+
     if (E.cursor_y < E.row_offest) {
         E.row_offest = E.cursor_y;
     }
@@ -413,10 +421,10 @@ void editorScroll() {
         E.row_offest = E.cursor_y - E.screen_rows + 1;
     }
     if (E.cursor_x < E.col_offset) {
-        E.col_offset = E.cursor_x;
+        E.col_offset = E.render_x;
     }
     if (E.cursor_x >= E.col_offset + E.screen_cols) {
-        E.col_offset = E.cursor_x - E.screen_cols + 1;
+        E.col_offset = E.render_x - E.screen_cols + 1;
     }
 }
 
@@ -444,4 +452,15 @@ void editorUpdateRow(editorRow* row) {
     }
     row->render_line[idx] = '\0';
     row->render_size = idx;
+}
+
+int editorCursorxToRenderx(editorRow* row, int cursor_x) {
+    int render_x = 0;
+    for (int j = 0; j < cursor_x; j++) {
+        if (row->line[j] == '\t')
+            render_x += (TAB_SIZE - 1) - (render_x % TAB_SIZE);
+        render_x++;
+    }
+
+    return render_x;
 }
