@@ -93,6 +93,7 @@ void editorDrawMessageBar(struct append_buffer *ab);
 void editorSetStatusMessage(const char *fmt, ...);
 
 /*** Input ***/
+char *editorPrompt(char *prompt);
 void editorMoveCursor(int key);
 
 /*** Row Operations ***/
@@ -445,6 +446,38 @@ void buffer_free(struct append_buffer *ab) {
     free(ab->buf);
 }
 
+char *editorPrompt(char *prompt) {
+    size_t buffer_size = 128;
+    char* buffer = malloc(buffer_size);
+
+    size_t length = 0;
+    buffer[0] = '\0';
+
+    while(1) {
+        editorSetStatusMessage(prompt, buffer);
+        editorRefreshScreen();
+
+        int c = editorReadKey();
+
+        if (c == '\x1b') {
+            editorSetStatusMessage("");
+            free(buffer);
+            return NULL;
+        } else if (c == '\r') {
+            editorSetStatusMessage("");
+            return buffer;
+        }
+        else if (!iscntrl(c) && c < 128) {
+            if (length == buffer_size - 1) {
+                buffer_size *= 2;
+                buffer = realloc(buffer, buffer_size);
+            }
+            buffer[length++] = c;
+            buffer[length] = '\0'; 
+        }
+    }
+}
+
 void editorMoveCursor(int key) {
     editorRow* row = (E.cursor_y >= E.num_rows) ? NULL : &E.row[E.cursor_y];
 
@@ -532,7 +565,13 @@ char *editorRowsToString(int *buffer_length) {
 }
 
 void editorSave() {
-    if (E.filename == NULL) return;
+    if (E.filename == NULL) {
+        E.filename = editorPrompt("Save as: %s (ESC to cancel)");
+        if (E.filename == NULL) {
+            editorSetStatusMessage("Save aborted");
+            return;
+        }
+    }
     int length;
     char *buffer = editorRowsToString(&length);
 
