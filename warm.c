@@ -308,8 +308,20 @@ void editorDrawRows(struct append_buffer* ab) {
 
 void editorDrawStatusBar(struct append_buffer *ab) {
     buffer_append(ab, "\x1b[7m", 4);
-    int length = 0;
+    char status[80];
+    char render_status[80];
+
+    int length = snprintf(status, sizeof(status), "%.20s - %d lines", E.filename ? E.filename : "[No Name]", E.num_rows);
+    int render_length = snprintf(render_status, sizeof(render_status), "%d/%d", E.cursor_y + 1, E.num_rows);
+    if (length > E.screen_cols)
+        length = E.screen_cols;
+    buffer_append(ab, status, length);
+
     while (length < E.screen_cols) {
+        if (E.screen_cols - length == render_length) {
+            buffer_append(ab, render_status, render_length);
+            break;
+        }
         buffer_append(ab, " ", 1);
         length++;
     }
