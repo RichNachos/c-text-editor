@@ -100,9 +100,11 @@ void editorAppendRow(char *s, size_t len);
 void editorUpdateRow(editorRow* row);
 int editorCursorxToRenderx(editorRow* row, int cursor_x);
 void editorRowInsertChar(editorRow *row, int at, int c);
+void editorRowDeleteChar(editorRow *row, int at);
 
 /*** Editor Operations ***/
 void editorInsertChar(int c);
+void editorDeleteChar();
 
 /*** File I/O ***/
 void editorOpen(char* filename);
@@ -246,11 +248,16 @@ void editorProcessKeypress() {
         case '\r':
         case BACKSPACE:
         case CTRL_KEY('h'):
-        case CTRL_KEY('l'):
         case DEL_KEY:
+            if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
+            editorDeleteChar();
+            break;
+
+        case CTRL_KEY('l'):
         case '\x1b':
             //TODO
             break;
+        
         case CTRL_KEY('s'):
             editorSave();
             break;
@@ -627,10 +634,30 @@ void editorRowInsertChar(editorRow *row, int at, int c) {
     E.dirty++;
 }
 
+void editorRowDeleteChar(editorRow *row, int at) {
+    if (at < 0 || at >= row->size)
+        return;
+
+    memmove(&row->line[at], &row->line[at + 1], row->size - at);
+    row->size--;
+    editorUpdateRow(row);
+    E.dirty++;
+}
+
 void editorInsertChar(int c) {
     if (E.cursor_y == E.num_rows) {
         editorAppendRow("", 0);
     }
     editorRowInsertChar(&E.row[E.cursor_y], E.cursor_x, c);
     E.cursor_x++;
+}
+
+void editorDeleteChar() {
+    if (E.cursor_y == E.num_rows) return;
+
+    editorRow* row = &E.row[E.cursor_y];
+    if (E.cursor_x > 0) {
+        editorRowDeleteChar(row, E.cursor_x - 1);
+        E.cursor_x--;
+    }
 }
