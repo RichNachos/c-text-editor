@@ -49,6 +49,7 @@ struct editorConfig E;
 #define CTRL_KEY(c) ((c) & 0x1f)
 
 enum editorKey {
+    BACKSPACE = 127,
     ARROW_LEFT = 1000,
     ARROW_RIGHT,
     ARROW_UP,
@@ -235,6 +236,15 @@ void editorProcessKeypress() {
     int c = editorReadKey();
 
     switch (c) {
+        case '\r':
+        case BACKSPACE:
+        case CTRL_KEY('h'):
+        case CTRL_KEY('l'):
+        case DEL_KEY:
+        case '\x1b':
+            //TODO
+            break;
+
         case CTRL_KEY('q'):
             write(STDOUT_FILENO, "\x1b[2J", 4);
             write(STDOUT_FILENO, "\x1b[H", 3);
