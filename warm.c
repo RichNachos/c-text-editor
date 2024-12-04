@@ -106,6 +106,7 @@ void editorRowDeleteChar(editorRow *row, int at);
 void editorRowAppendString(editorRow *row, char* s, size_t length);
 
 /*** Editor Operations ***/
+void editorInsertNewline();
 void editorInsertChar(int c);
 void editorDeleteChar();
 
@@ -249,6 +250,9 @@ void editorProcessKeypress() {
 
     switch (c) {
         case '\r':
+            editorInsertNewline();
+            break;
+        
         case BACKSPACE:
         case CTRL_KEY('h'):
         case DEL_KEY:
@@ -670,6 +674,23 @@ void editorRowAppendString(editorRow *row, char* s, size_t length) {
     row->line[row->size] = '\0';
     editorUpdateRow(row);
     E.dirty++;
+}
+
+void editorInsertNewline() {
+    if (E.cursor_x == 0) {
+        editorInsertRow(E.cursor_y, "", 0);
+    } else {
+        editorRow* row = &E.row[E.cursor_y];
+
+        editorInsertRow(E.cursor_y + 1, &row->line[E.cursor_x], row->size - E.cursor_x);
+        row = &E.row[E.cursor_y];
+        row->size = E.cursor_x;
+        row->line[row->size] = '\0';
+        editorUpdateRow(row);
+    }
+
+    E.cursor_y++;
+    E.cursor_x = 0;
 }
 
 void editorInsertChar(int c) {
