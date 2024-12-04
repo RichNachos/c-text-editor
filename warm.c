@@ -36,6 +36,7 @@ struct editorConfig {
     int num_rows;
     struct editorRow* row;
     char* filename;
+    int dirty;
 
     char status_message[80];
     time_t status_message_time;
@@ -119,6 +120,7 @@ void initEditor() {
     E.num_rows = 0;
     E.row = NULL;
     E.filename = NULL;
+    E.dirty = 0;
     E.status_message[0] = '\0';
     E.status_message_time = 0;
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
@@ -346,7 +348,14 @@ void editorDrawStatusBar(struct append_buffer *ab) {
     char status[80];
     char render_status[80];
 
-    int length = snprintf(status, sizeof(status), "%.20s - %d lines", E.filename ? E.filename : "[No Name]", E.num_rows);
+    int length = snprintf(
+        status,
+        sizeof(status),
+        "%.20s - %d lines %s",
+        E.filename ? E.filename : "[No Name]",
+        E.num_rows, 
+        E.dirty ? "(modified)" : ""
+        );
     int render_length = snprintf(render_status, sizeof(render_status), "%d/%d", E.cursor_y + 1, E.num_rows);
     if (length > E.screen_cols)
         length = E.screen_cols;
@@ -473,6 +482,7 @@ void editorOpen(char* filename) {
 
     free(line);
     fclose(fp);
+    E.dirty = 0;
 }
 
 char *editorRowsToString(int *buffer_length) {
@@ -508,6 +518,7 @@ void editorSave() {
         if (write(fd, buffer, length) == length) {
             close(fd);
             free(buffer);
+            E.dirty = 0;
             editorSetStatusMessage("%d bytes written to disk", length);
             return;
         }
@@ -517,7 +528,6 @@ void editorSave() {
     free(buffer);
     editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
-
 
 void editorAppendRow(char *s, size_t len) {
     E.row = realloc(E.row, sizeof(editorRow) * (E.num_rows + 1));
@@ -535,6 +545,7 @@ void editorAppendRow(char *s, size_t len) {
     editorUpdateRow(&E.row[at]);
 
     E.num_rows++;
+    E.dirty++;
 }
 
 void editorScroll() {
@@ -603,6 +614,7 @@ void editorRowInsertChar(editorRow *row, int at, int c) {
     row->line[at] = c;
 
     editorUpdateRow(row);
+    E.dirty++;
 }
 
 void editorInsertChar(int c) {
