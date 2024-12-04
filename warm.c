@@ -447,8 +447,7 @@ void editorScroll() {
 }
 
 void editorUpdateRow(editorRow* row) {
-    if (row->render_line)
-        free(row->render_line);
+    free(row->render_line);
 
     int tabs = 0;
     for (int j = 0; j < row->size; j++) {
