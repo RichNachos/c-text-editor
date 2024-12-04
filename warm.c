@@ -613,7 +613,7 @@ void editorFind() {
         char* match = strstr(row->render_line, query);
 
         if (match) {
-            E.cursor_x = i;
+            E.cursor_y = i;
             E.cursor_x = editorRenderxToCursorx(row, match - row->render_line);
             E.row_offest = E.num_rows;
             break;
