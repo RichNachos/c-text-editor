@@ -95,6 +95,7 @@ void editorMoveCursor(int key);
 void editorAppendRow(char *s, size_t len);
 void editorUpdateRow(editorRow* row);
 int editorCursorxToRenderx(editorRow* row, int cursor_x);
+void editorRowInsertChar(editorRow *row, int at, int c);
 
 /*** File I/O ***/
 void editorOpen(char* filename);
@@ -524,4 +525,16 @@ int editorCursorxToRenderx(editorRow* row, int cursor_x) {
     }
 
     return render_x;
+}
+
+void editorRowInsertChar(editorRow *row, int at, int c) {
+    if (at < 0 || at > row->size)
+        at = row->size;
+
+    row->line = realloc(row->line, row->size + 2);
+    memmove(&row->line[at + 1], &row->line[at], row->size - at + 1);
+    row->size++;
+    row->line[at] = c;
+
+    editorUpdateRow(row);
 }
