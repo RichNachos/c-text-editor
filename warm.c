@@ -97,6 +97,9 @@ void editorUpdateRow(editorRow* row);
 int editorCursorxToRenderx(editorRow* row, int cursor_x);
 void editorRowInsertChar(editorRow *row, int at, int c);
 
+/*** Editor Operations ***/
+void editorInsertChar(int c);
+
 /*** File I/O ***/
 void editorOpen(char* filename);
 
@@ -256,6 +259,9 @@ void editorProcessKeypress() {
         case ARROW_DOWN:
         case ARROW_RIGHT:
             editorMoveCursor(c);
+            break;
+        default:
+            editorInsertChar(c);
             break;
     }
 }
@@ -537,4 +543,12 @@ void editorRowInsertChar(editorRow *row, int at, int c) {
     row->line[at] = c;
 
     editorUpdateRow(row);
+}
+
+void editorInsertChar(int c) {
+    if (E.cursor_y == E.num_rows) {
+        editorAppendRow("", 0);
+    }
+    editorRowInsertChar(&E.row[E.cursor_y], E.cursor_x, c);
+    E.cursor_x++;
 }
