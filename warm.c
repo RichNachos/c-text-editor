@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
 
 /*** Data ***/
 typedef struct editorRow {
@@ -103,6 +104,8 @@ void editorInsertChar(int c);
 
 /*** File I/O ***/
 void editorOpen(char* filename);
+char *editorRowsToString(int *buffer_length);
+void editorSave();
 
 /*** Init ***/
 void initEditor();
@@ -243,6 +246,9 @@ void editorProcessKeypress() {
         case DEL_KEY:
         case '\x1b':
             //TODO
+            break;
+        case CTRL_KEY('s'):
+            editorSave();
             break;
 
         case CTRL_KEY('q'):
@@ -468,6 +474,41 @@ void editorOpen(char* filename) {
     free(line);
     fclose(fp);
 }
+
+char *editorRowsToString(int *buffer_length) {
+    int length = 0;
+    for (int i = 0; i < E.num_rows; i++) {
+        length += E.row[i].size + 1;
+    }
+    *buffer_length = length;
+
+    char* buffer = malloc(length);
+    if (!buffer) die("editorRowsToString failed");
+
+    char* p = buffer;
+
+    for (int i = 0; i < E.num_rows; i++) {
+        memcpy(p, E.row[i].line, E.row[i].size);
+        p += E.row[i].size;
+        *p = '\n';
+        p++;
+    }
+
+    return buffer;
+}
+
+void editorSave() {
+    if (E.filename == NULL) return;
+    int length;
+    char *buffer = editorRowsToString(&length);
+
+    int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+    ftruncate(fd, length);
+    write(fd, buffer, length);
+    close(fd);
+    free(buffer);
+}
+
 
 void editorAppendRow(char *s, size_t len) {
     E.row = realloc(E.row, sizeof(editorRow) * (E.num_rows + 1));
