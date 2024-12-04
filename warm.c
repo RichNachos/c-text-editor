@@ -103,6 +103,7 @@ void editorUpdateRow(editorRow* row);
 int editorCursorxToRenderx(editorRow* row, int cursor_x);
 void editorRowInsertChar(editorRow *row, int at, int c);
 void editorRowDeleteChar(editorRow *row, int at);
+void editorRowAppendString(editorRow *row, char* s, size_t length);
 
 /*** Editor Operations ***/
 void editorInsertChar(int c);
@@ -656,6 +657,16 @@ void editorRowDeleteChar(editorRow *row, int at) {
 
     memmove(&row->line[at], &row->line[at + 1], row->size - at);
     row->size--;
+    editorUpdateRow(row);
+    E.dirty++;
+}
+
+void editorRowAppendString(editorRow *row, char* s, size_t length) {
+    row->line = realloc(row->line, row->size + length + 1);
+
+    memcpy(&row->line[row->size], s, length);
+    row->size += length;
+    row->line[row->size] = '\0';
     editorUpdateRow(row);
     E.dirty++;
 }
