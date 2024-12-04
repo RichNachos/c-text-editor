@@ -222,10 +222,11 @@ void editorProcessKeypress() {
             exit(0);
             break;
         case PAGE_UP:
-            E.cursor_y = 0;
+            E.cursor_y = E.row_offest;
             break;
         case PAGE_DOWN:
-            E.cursor_y = E.screen_rows - 1;
+            E.cursor_y = E.row_offest + E.screen_rows - 1;
+            if (E.cursor_y > E.num_rows) E.cursor_y = E.num_rows;
             break;
         case HOME_KEY:
             E.cursor_x = 0;
