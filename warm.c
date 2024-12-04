@@ -503,8 +503,14 @@ void editorSave() {
     char *buffer = editorRowsToString(&length);
 
     int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
-    ftruncate(fd, length);
-    write(fd, buffer, length);
+    if (fd == -1) {
+        free(buffer);
+        return;
+    }
+    if (ftruncate(fd, length) != -1) {
+        write(fd, buffer, length);
+    }
+    
     close(fd);
     free(buffer);
 }
