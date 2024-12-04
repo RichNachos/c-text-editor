@@ -102,6 +102,7 @@ void editorDeleteRow(int at);
 void editorFreeRow(editorRow* row);
 void editorUpdateRow(editorRow* row);
 int editorCursorxToRenderx(editorRow* row, int cursor_x);
+int editorRenderxToCursorx(editorRow* row, int render_x);
 void editorRowInsertChar(editorRow *row, int at, int c);
 void editorRowDeleteChar(editorRow *row, int at);
 void editorRowAppendString(editorRow *row, char* s, size_t length);
@@ -115,6 +116,9 @@ void editorDeleteChar();
 void editorOpen(char* filename);
 char *editorRowsToString(int *buffer_length);
 void editorSave();
+
+/*** Find ***/
+void editorFind();
 
 /*** Init ***/
 void initEditor();
@@ -144,7 +148,7 @@ int main(int argc, char* argv[]) {
         editorOpen(argv[1]);
     }
 
-    editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
+    editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
     while(1) {
         editorRefreshScreen();
@@ -268,6 +272,10 @@ void editorProcessKeypress() {
         
         case CTRL_KEY('s'):
             editorSave();
+            break;
+        
+        case CTRL_KEY('f'):
+            editorFind();
             break;
 
         case CTRL_KEY('q'):
@@ -596,6 +604,25 @@ void editorSave() {
     editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 
+void editorFind() {
+    char* query = editorPrompt("Search: %s (ESC to cancel)");
+    if (query == NULL) return;
+
+    for (int i = 0; i < E.num_rows; i++) {
+        editorRow* row = &E.row[i];
+        char* match = strstr(row->render_line, query);
+
+        if (match) {
+            E.cursor_x = i;
+            E.cursor_x = editorRenderxToCursorx(row, match - row->render_line);
+            E.row_offest = E.num_rows;
+            break;
+        }
+    }
+
+    free(query);
+}
+
 void editorInsertRow(int at, char *s, size_t len) {
     if (at < 0 || at > E.num_rows) return;
 
@@ -684,6 +711,20 @@ int editorCursorxToRenderx(editorRow* row, int cursor_x) {
     }
 
     return render_x;
+}
+
+int editorRenderxToCursorx(editorRow* row, int render_x) {
+    int curr = 0;
+    int cursor_x;
+    for (cursor_x = 0; cursor_x < row->size; cursor_x++) {
+        if (row->line[cursor_x] == '\t')
+            curr += (TAB_SIZE - 1) - (curr % TAB_SIZE);
+        curr++;
+
+        if (curr > render_x) return cursor_x;
+    }
+
+    return cursor_x;
 }
 
 void editorRowInsertChar(editorRow *row, int at, int c) {
