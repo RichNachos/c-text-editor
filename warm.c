@@ -97,6 +97,8 @@ void editorMoveCursor(int key);
 
 /*** Row Operations ***/
 void editorAppendRow(char *s, size_t len);
+void editorDeleteRow(int at);
+void editorFreeRow(editorRow* row);
 void editorUpdateRow(editorRow* row);
 int editorCursorxToRenderx(editorRow* row, int cursor_x);
 void editorRowInsertChar(editorRow *row, int at, int c);
@@ -563,6 +565,20 @@ void editorAppendRow(char *s, size_t len) {
 
     E.num_rows++;
     E.dirty++;
+}
+
+void editorDeleteRow(int at) {
+    if (at < 0 || at >= E.num_rows) return;
+    editorFreeRow(&E.row[at]);
+    
+    memmove(&E.row[at], &E.row[at + 1], sizeof(editorRow) * (E.num_rows - at - 1));
+    E.num_rows--;
+    E.dirty++;
+}
+
+void editorFreeRow(editorRow* row) {
+    free(row->render_line);
+    free(row->line);
 }
 
 void editorScroll() {
