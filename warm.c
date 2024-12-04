@@ -32,6 +32,7 @@ struct editorConfig {
     int screen_cols;
     int num_rows;
     struct editorRow* row;
+    char* filename;
     struct termios ORIGINAL_TERMIOS;
 };
 struct editorConfig E;
@@ -101,6 +102,7 @@ void initEditor() {
     E.row_offest = 0;
     E.num_rows = 0;
     E.row = NULL;
+    E.filename = NULL;
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
         die("getWindowSize failed");
     }
@@ -382,6 +384,9 @@ void editorMoveCursor(int key) {
 }
 
 void editorOpen(char* filename) {
+    free(E.filename);
+    E.filename = strdup(filename);
+
     FILE* fp = fopen(filename, "r");
     
     if (!fp) {
