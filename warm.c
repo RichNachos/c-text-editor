@@ -503,16 +503,19 @@ void editorSave() {
     char *buffer = editorRowsToString(&length);
 
     int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
-    if (fd == -1) {
-        free(buffer);
-        return;
+    if (fd != -1) {
+        if (ftruncate(fd, length) != -1) {
+        if (write(fd, buffer, length) == length) {
+            close(fd);
+            free(buffer);
+            editorSetStatusMessage("%d bytes written to disk", length);
+            return;
+        }
+        }
+        close(fd);
     }
-    if (ftruncate(fd, length) != -1) {
-        write(fd, buffer, length);
-    }
-    
-    close(fd);
     free(buffer);
+    editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 
 
