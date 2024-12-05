@@ -30,11 +30,13 @@ struct editorSyntax {
 };
 
 typedef struct editorRow {
+    int index;
     int size;
     int render_size;
     char *line;
     char *render_line;
     unsigned char* highlight;
+    int highlight_open_comment;
 } editorRow;
 
 struct editorConfig {
@@ -272,13 +274,13 @@ void editorUpdateSyntax(editorRow* row) {
 
     int prev_separation = 1;
     int in_string = 0;
-    int in_comment = 0;
+    int in_comment = (row->index > 0 && E.row[row->index - 1].highlight_open_comment);
 
     for (int i = 0; i < row->render_size; i++) {
         char c = row->render_line[i];
         unsigned char prev_highlight = (i > 0) ? row->highlight[i-1] : HIGHLIGHT_NORMAL;
 
-        if (scs_length && !in_string) {
+        if (scs_length && !in_string && !in_comment) {
             if (!strncmp(&row->render_line[i], single_comment_start, scs_length)) {
                 memset(&row->highlight[i], HIGHLIGHT_COMMENT, row->render_size - i);
                 break;
@@ -359,6 +361,12 @@ void editorUpdateSyntax(editorRow* row) {
 
         prev_separation = isSeparator(c);
     }
+
+    int changed = (row->highlight_open_comment != in_comment);
+
+    row->highlight_open_comment = in_comment;
+    if (changed && row->index + 1 < E.num_rows)
+        editorUpdateSyntax(&E.row[row->index + 1]);
 }
 
 int editorSyntaxToColor(int highlight) {
@@ -951,6 +959,10 @@ void editorInsertRow(int at, char *s, size_t len) {
 
     E.row = realloc(E.row, sizeof(editorRow) * (E.num_rows + 1));
     memmove(&E.row[at + 1], &E.row[at], sizeof(editorRow) * (E.num_rows - at));
+    for (int j = at + 1; j < E.num_rows; j++)
+        E.row[j].index++;
+
+    E.row[at].index = at;
 
     E.row[at].size = len;
     E.row[at].line = malloc(len + 1);
@@ -960,6 +972,7 @@ void editorInsertRow(int at, char *s, size_t len) {
     E.row[at].render_size = 0;
     E.row[at].render_line = NULL;
     E.row[at].highlight = NULL;
+    E.row[at].highlight_open_comment = 0;
 
     editorUpdateRow(&E.row[at]);
 
@@ -972,6 +985,9 @@ void editorDeleteRow(int at) {
     editorFreeRow(&E.row[at]);
     
     memmove(&E.row[at], &E.row[at + 1], sizeof(editorRow) * (E.num_rows - at - 1));
+    for (int j = at; j < E.num_rows - 1; j++)
+        E.row[j].index--;
+
     E.num_rows--;
     E.dirty++;
 }
