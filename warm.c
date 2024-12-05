@@ -118,6 +118,7 @@ char *editorRowsToString(int *buffer_length);
 void editorSave();
 
 /*** Find ***/
+void editorFindCallback(char* query, int key);
 void editorFind();
 
 /*** Init ***/
@@ -607,9 +608,10 @@ void editorSave() {
     editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 
-void editorFind() {
-    char* query = editorPrompt("Search: %s (ESC to cancel)", NULL);
-    if (query == NULL) return;
+void editorFindCallback(char* query, int key) {
+    if (key == '\r' || key == '\x1b') {
+        return;
+    }
 
     for (int i = 0; i < E.num_rows; i++) {
         editorRow* row = &E.row[i];
@@ -622,8 +624,12 @@ void editorFind() {
             break;
         }
     }
+}
 
-    free(query);
+void editorFind() {
+    char* query = editorPrompt("Search: %s (ESC to cancel)", editorFindCallback);
+    if (query)
+        free(query);
 }
 
 void editorInsertRow(int at, char *s, size_t len) {
