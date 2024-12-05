@@ -556,7 +556,17 @@ void editorDrawRows(struct append_buffer* ab) {
             int current_color = -1;
 
             for (int j = 0; j < length; j++) {
-                if (highlight[j] == HIGHLIGHT_NORMAL) {
+                if (iscntrl(c[j])) {
+                    char symbol = (c[j] <= 26) ? '@' + c[j] : '?';
+                    buffer_append(ab, "\x1b[7m", 4);
+                    buffer_append(ab, &symbol, 1);
+                    buffer_append(ab, "\x1b[m", 3);
+                    if (current_color != -1) {
+                        char buffer[16];
+                        int c_length = snprintf(buffer, sizeof(buffer), "\x1b[%dm", current_color);
+                        buffer_append(ab, buffer, c_length);
+                    }
+                } else if (highlight[j] == HIGHLIGHT_NORMAL) {
                     if (current_color != -1) {
                         buffer_append(ab, "\x1b[39m", 5);
                         current_color = -1;
