@@ -215,7 +215,9 @@ void editorUpdateSyntax(editorRow* row) {
     memset(row->highlight, HIGHLIGHT_NORMAL, row->render_size);
 
     for (int i = 0; i < row->render_size; i++) {
-        if (isdigit(row->render_line[i])) {
+        char c = row->render_line[i];
+
+        if (isdigit(c)) {
             row->highlight[i] = HIGHLIGHT_NUMBER;
         }
     }
