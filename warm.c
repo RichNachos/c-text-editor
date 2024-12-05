@@ -402,21 +402,29 @@ void editorDrawRows(struct append_buffer* ab) {
             
             char* c = &E.row[file_row].render_line[E.col_offset];
             unsigned char* highlight = &E.row[file_row].highlight[E.col_offset];
+            int current_color = -1;
 
             for (int j = 0; j < length; j++) {
                 if (highlight[j] == HIGHLIGHT_NORMAL) {
-                    buffer_append(ab, "\x1b[39m", 5);
+                    if (current_color != -1) {
+                        buffer_append(ab, "\x1b[39m", 5);
+                        current_color = -1;
+                    }
                     buffer_append(ab, &c[j], 1);
                 } else {
                     int color = editorSyntaxToColor(highlight[j]);
-                    char buffer[16];
-
-                    int c_length = snprintf(buffer, sizeof(buffer), "\x1b[%dm", color);
-                    buffer_append(ab, buffer, c_length);
+                    
+                    if (color != current_color) {
+                        current_color = color;
+                        char buffer[16];
+                        int c_length = snprintf(buffer, sizeof(buffer), "\x1b[%dm", color);
+                        buffer_append(ab, buffer, c_length);
+                    }
+                    
                     buffer_append(ab, &c[j], 1);
                 }
             }
-            
+
             buffer_append(ab, "\x1b[39m", 5);
         }
 
