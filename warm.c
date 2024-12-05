@@ -95,7 +95,7 @@ struct editorSyntax HIGHLIGHT_DB[] = {
     }
 };
 
-#define HIGHLIGHT_DB_ENTRIES sizeof(HIGHLIGHT_DB / sizeof(HIGHLIGHT_DB[0]))
+#define HIGHLIGHT_DB_ENTRIES (sizeof(HIGHLIGHT_DB) / sizeof(HIGHLIGHT_DB[0]))
 
 /*** Terminal ***/
 void die(const char* s);
@@ -105,6 +105,7 @@ void disableRawTerminalMode();
 /*** Syntax Highlighting ***/
 void editorUpdateSyntax(editorRow* row);
 int editorSyntaxToColor(int highlight);
+void editorSelectSyntaxHighlight();
 int isSeparator(int c);
 
 /*** Append Buffer ***/
@@ -268,6 +269,28 @@ int editorSyntaxToColor(int highlight) {
             return 34;
         default:
             return 37;
+    }
+}
+
+void editorSelectSyntaxHighlight() {
+    E.syntax = NULL;
+    if (E.filename == NULL) return;
+
+    char* extension = strchr(E.filename, '.');
+
+    for (unsigned int j = 0; j < HIGHLIGHT_DB_ENTRIES; j++) {
+        struct editorSyntax* s = &HIGHLIGHT_DB[j];
+        
+        unsigned int i = 0;
+        while (s->filematch[i]) {
+            int is_extension = (s->filematch[i][0] == '.');
+
+            if ((is_extension && extension && !strcmp(extension, s->filematch[i])) || (!is_extension && strstr(E.filename, s->filematch[i]))) {
+                E.syntax = s;
+                return;
+            }
+            i++;
+        }
     }
 }
 
@@ -492,7 +515,16 @@ void editorDrawStatusBar(struct append_buffer *ab) {
         E.num_rows, 
         E.dirty ? "(modified)" : ""
         );
-    int render_length = snprintf(render_status, sizeof(render_status), "%s %d/%d", E.syntax ? E.syntax->filetype : "no file type", E.cursor_y + 1, E.num_rows);
+    
+    int render_length = snprintf(
+        render_status,
+        sizeof(render_status),
+        "%s | %d/%d",
+        E.syntax ? E.syntax->filetype : "no file type",
+        E.cursor_y + 1,
+        E.num_rows
+        );
+
     if (length > E.screen_cols)
         length = E.screen_cols;
     buffer_append(ab, status, length);
@@ -638,6 +670,8 @@ void editorOpen(char* filename) {
     free(E.filename);
     E.filename = strdup(filename);
 
+    editorSelectSyntaxHighlight();
+
     FILE* fp = fopen(filename, "r");
     
     if (!fp) {
@@ -689,6 +723,7 @@ void editorSave() {
             editorSetStatusMessage("Save aborted");
             return;
         }
+        editorSelectSyntaxHighlight();
     }
     int length;
     char *buffer = editorRowsToString(&length);
