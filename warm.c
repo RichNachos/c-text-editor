@@ -23,6 +23,7 @@ typedef struct editorRow {
     int render_size;
     char *line;
     char *render_line;
+    unsigned char* highlight;
 } editorRow;
 
 struct editorConfig {
@@ -63,6 +64,11 @@ enum editorKey {
     PAGE_DOWN
 };
 
+enum editorHighlight {
+    HIGHLIGHT_NORMAL = 0,
+    HIGHLIGHT_NUMBER
+};
+
 const int TAB_SIZE = 8;
 const int QUIT_TIMES = 3;
 
@@ -70,6 +76,10 @@ const int QUIT_TIMES = 3;
 void die(const char* s);
 void enableRawTerminalMode();
 void disableRawTerminalMode();
+
+/*** Syntax Highlighting ***/
+void editorUpdateSyntax(editorRow* row);
+int editorSyntaxToColor(int highlight);
 
 /*** Append Buffer ***/
 struct append_buffer {
@@ -196,6 +206,26 @@ void enableRawTerminalMode() {
 void disableRawTerminalMode() {
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.ORIGINAL_TERMIOS) == -1) {
         die("tcsetattr failed");
+    }
+}
+
+void editorUpdateSyntax(editorRow* row) {
+    row->highlight = realloc(row->highlight, row->render_size);
+    memset(row->highlight, HIGHLIGHT_NORMAL, row->render_size);
+
+    for (int i = 0; i < row->render_size; i++) {
+        if (isdigit(row->render_line[i])) {
+            row->highlight[i] = HIGHLIGHT_NUMBER;
+        }
+    }
+}
+
+int editorSyntaxToColor(int highlight) {
+    switch (highlight) {
+        case HIGHLIGHT_NUMBER:
+            return 31;
+        default:
+            return 37;
     }
 }
 
@@ -695,6 +725,7 @@ void editorInsertRow(int at, char *s, size_t len) {
 
     E.row[at].render_size = 0;
     E.row[at].render_line = NULL;
+    E.row[at].highlight = NULL;
 
     editorUpdateRow(&E.row[at]);
 
@@ -714,6 +745,7 @@ void editorDeleteRow(int at) {
 void editorFreeRow(editorRow* row) {
     free(row->render_line);
     free(row->line);
+    free(row->highlight);
 }
 
 void editorScroll() {
@@ -759,6 +791,8 @@ void editorUpdateRow(editorRow* row) {
     }
     row->render_line[idx] = '\0';
     row->render_size = idx;
+
+    editorUpdateSyntax(row);
 }
 
 int editorCursorxToRenderx(editorRow* row, int cursor_x) {
