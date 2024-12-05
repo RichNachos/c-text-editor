@@ -18,6 +18,13 @@
 #include <fcntl.h>
 
 /*** Data ***/
+
+struct editorSyntax {
+    char* filetype;
+    char** filematch;
+    int flags;
+};
+
 typedef struct editorRow {
     int size;
     int render_size;
@@ -70,8 +77,23 @@ enum editorHighlight {
     HIGHLIGHT_MATCH
 };
 
+#define HIGHLIGHT_NUMBERS (1<<0)
+
 const int TAB_SIZE = 8;
 const int QUIT_TIMES = 3;
+
+/*** Filetypes ***/
+char* C_HIGHLIGHT_EXTENSIONS[] = { ".c", ".h", ".cpp", NULL };
+
+struct editorSyntax HIGHLIGHT_DB[] = {
+    {
+        "c",
+        C_HIGHLIGHT_EXTENSIONS,
+        HIGHLIGHT_NUMBERS
+    }
+};
+
+#define HIGHLIGHT_DB_ENTRIES sizeof(HIGHLIGHT_DB / sizeof(HIGHLIGHT_DB[0]))
 
 /*** Terminal ***/
 void die(const char* s);
