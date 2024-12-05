@@ -22,6 +22,7 @@
 struct editorSyntax {
     char* filetype;
     char** filematch;
+    char** keywords;
     char* single_comment_start;
     int flags;
 };
@@ -77,6 +78,8 @@ enum editorKey {
 enum editorHighlight {
     HIGHLIGHT_NORMAL = 0,
     HIGHLIGHT_COMMENT,
+    HIGHLIGHT_KEYWORD1,
+    HIGHLIGHT_KEYWORD2,
     HIGHLIGHT_STRING,
     HIGHLIGHT_NUMBER,
     HIGHLIGHT_MATCH
@@ -90,11 +93,18 @@ const int QUIT_TIMES = 3;
 
 /*** Filetypes ***/
 char* C_HIGHLIGHT_EXTENSIONS[] = { ".c", ".h", ".cpp", NULL };
+char* C_HIGHLIGHT_KEYWORDS[] = {
+    "switch", "if", "while", "for", "break", "continue", "return", "else", "struct",
+    "union", "typedef", "static", "enum", "class", "case",
+
+    "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|", "void|", NULL
+};
 
 struct editorSyntax HIGHLIGHT_DB[] = {
     {
         "c",
         C_HIGHLIGHT_EXTENSIONS,
+        C_HIGHLIGHT_KEYWORDS,
         "//",
         HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS
     }
@@ -248,6 +258,7 @@ void editorUpdateSyntax(editorRow* row) {
 
     if (E.syntax == NULL) return;
 
+    char** keywords = E.syntax->keywords;
     char* single_comment_start = E.syntax->single_comment_start;
     int length = single_comment_start ? strlen(single_comment_start) : 0;
 
@@ -295,20 +306,45 @@ void editorUpdateSyntax(editorRow* row) {
             }
         }
 
+        if (prev_separation) {
+            int j = 0;
+            for (j = 0; keywords[j]; j++) {
+                int keyword_length = strlen(keywords[j]);
+                int keyword2 = keywords[j][keyword_length - 1] == '|';
+                if (keyword2)
+                    keyword_length--;
+
+                if (!strncmp(&row->render_line[i], keywords[j], keyword_length) && isSeparator(row->render_line[i + keyword_length])) {
+                    memset(&row->highlight[i], keyword2 ? HIGHLIGHT_KEYWORD2 : HIGHLIGHT_KEYWORD1, keyword_length);
+                    i += keyword_length;
+                    break;
+                }
+            }
+
+            if (keywords[j] != NULL) {
+                prev_separation = 0;
+                continue;
+            } 
+        }
+
         prev_separation = isSeparator(c);
     }
 }
 
 int editorSyntaxToColor(int highlight) {
     switch (highlight) {
+        case HIGHLIGHT_COMMENT:
+            return 36;
+        case HIGHLIGHT_KEYWORD1:
+            return 33;
+        case HIGHLIGHT_KEYWORD2:
+            return 32;
+        case HIGHLIGHT_STRING:
+            return 35;
         case HIGHLIGHT_NUMBER:
             return 31;
         case HIGHLIGHT_MATCH:
             return 34;
-        case HIGHLIGHT_STRING:
-            return 35;
-        case HIGHLIGHT_COMMENT:
-            return 36;
         default:
             return 37;
     }
