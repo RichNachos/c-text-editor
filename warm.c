@@ -292,7 +292,7 @@ void editorUpdateSyntax(editorRow* row) {
                 row->highlight[i] = HIGHLIGHT_MULTILINE_COMMENT;
                 if (!strncmp(&row->render_line[i], multiline_comment_end, mce_length)) {
                     memset(&row->highlight[i], HIGHLIGHT_MULTILINE_COMMENT, mce_length);
-                    i += mce_length;
+                    i += mce_length - 1;
                     in_comment = 0;
                     prev_separation = 1;
                     continue;
@@ -302,7 +302,7 @@ void editorUpdateSyntax(editorRow* row) {
                 continue;
             } else if (!strncmp(&row->render_line[i], multiline_comment_start, mcs_length)) {
                 memset(&row->highlight[i], HIGHLIGHT_MULTILINE_COMMENT, mcs_length);
-                i += mcs_length;
+                i += mcs_length - 1;
                 in_comment = 1;
                 continue;
             }
