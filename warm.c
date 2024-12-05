@@ -22,6 +22,7 @@
 struct editorSyntax {
     char* filetype;
     char** filematch;
+    char* single_comment_start;
     int flags;
 };
 
@@ -75,6 +76,7 @@ enum editorKey {
 
 enum editorHighlight {
     HIGHLIGHT_NORMAL = 0,
+    HIGHLIGHT_COMMENT,
     HIGHLIGHT_STRING,
     HIGHLIGHT_NUMBER,
     HIGHLIGHT_MATCH
@@ -93,6 +95,7 @@ struct editorSyntax HIGHLIGHT_DB[] = {
     {
         "c",
         C_HIGHLIGHT_EXTENSIONS,
+        "//",
         HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS
     }
 };
@@ -245,12 +248,22 @@ void editorUpdateSyntax(editorRow* row) {
 
     if (E.syntax == NULL) return;
 
+    char* single_comment_start = E.syntax->single_comment_start;
+    int length = single_comment_start ? strlen(single_comment_start) : 0;
+
     int prev_separation = 1;
     int in_string = 0;
 
     for (int i = 0; i < row->render_size; i++) {
         char c = row->render_line[i];
         unsigned char prev_highlight = (i > 0) ? row->highlight[i-1] : HIGHLIGHT_NORMAL;
+
+        if (length && !in_string) {
+            if (!strncmp(&row->render_line[i], single_comment_start, length)) {
+                memset(&row->highlight[i], HIGHLIGHT_COMMENT, row->render_size - i);
+                break;
+            }
+        }
 
         if (E.syntax->flags & HIGHLIGHT_STRINGS) {
             if (in_string) {
@@ -290,10 +303,12 @@ int editorSyntaxToColor(int highlight) {
     switch (highlight) {
         case HIGHLIGHT_NUMBER:
             return 31;
-        case HIGHLIGHT_STRING:
-            return 35;
         case HIGHLIGHT_MATCH:
             return 34;
+        case HIGHLIGHT_STRING:
+            return 35;
+        case HIGHLIGHT_COMMENT:
+            return 36;
         default:
             return 37;
     }
