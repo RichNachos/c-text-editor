@@ -1,6 +1,6 @@
 # Warm Editor
 
-## Terminal Text Editor Written in C.
+## Terminal Text Editor Written in C
 
 This repository contains the code for a personal project I wanted to write for a long time, a terminal text editor (just like `nano`) written completely in C from scratch.
 
