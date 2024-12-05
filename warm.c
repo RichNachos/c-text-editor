@@ -221,7 +221,7 @@ void editorUpdateSyntax(editorRow* row) {
         char c = row->render_line[i];
         unsigned char prev_highlight = (i > 0) ? row->highlight[i-1] : HIGHLIGHT_NORMAL;
 
-        if (isdigit(c) && (prev_separation || prev_highlight == HIGHLIGHT_NUMBER)) {
+        if ((isdigit(c) && (prev_separation || prev_highlight == HIGHLIGHT_NUMBER)) || ((c == '.') && (prev_highlight == HIGHLIGHT_NUMBER))) {
             row->highlight[i] = HIGHLIGHT_NUMBER;
             prev_separation = 0;
             continue;
