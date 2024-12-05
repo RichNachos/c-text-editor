@@ -24,6 +24,8 @@ struct editorSyntax {
     char** filematch;
     char** keywords;
     char* single_comment_start;
+    char* multiline_comment_start;
+    char* multiline_comment_end;
     int flags;
 };
 
@@ -78,6 +80,7 @@ enum editorKey {
 enum editorHighlight {
     HIGHLIGHT_NORMAL = 0,
     HIGHLIGHT_COMMENT,
+    HIGHLIGHT_MULTILINE_COMMENT,
     HIGHLIGHT_KEYWORD1,
     HIGHLIGHT_KEYWORD2,
     HIGHLIGHT_STRING,
@@ -105,7 +108,7 @@ struct editorSyntax HIGHLIGHT_DB[] = {
         "c",
         C_HIGHLIGHT_EXTENSIONS,
         C_HIGHLIGHT_KEYWORDS,
-        "//",
+        "//", "/*", "*/",
         HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS
     }
 };
@@ -157,7 +160,7 @@ int editorCursorxToRenderx(editorRow* row, int cursor_x);
 int editorRenderxToCursorx(editorRow* row, int render_x);
 void editorRowInsertChar(editorRow *row, int at, int c);
 void editorRowDeleteChar(editorRow *row, int at);
-void editorRowAppendString(editorRow *row, char* s, size_t length);
+void editorRowAppendString(editorRow *row, char* s, size_t scs_length);
 
 /*** Editor Operations ***/
 void editorInsertNewline();
@@ -260,19 +263,46 @@ void editorUpdateSyntax(editorRow* row) {
 
     char** keywords = E.syntax->keywords;
     char* single_comment_start = E.syntax->single_comment_start;
-    int length = single_comment_start ? strlen(single_comment_start) : 0;
+    char* multiline_comment_start = E.syntax->multiline_comment_start;
+    char* multiline_comment_end = E.syntax->multiline_comment_end;
+
+    int scs_length = single_comment_start ? strlen(single_comment_start) : 0;
+    int mcs_length = multiline_comment_start ? strlen(multiline_comment_start) : 0;
+    int mce_length = multiline_comment_end ? strlen(multiline_comment_end) : 0;
 
     int prev_separation = 1;
     int in_string = 0;
+    int in_comment = 0;
 
     for (int i = 0; i < row->render_size; i++) {
         char c = row->render_line[i];
         unsigned char prev_highlight = (i > 0) ? row->highlight[i-1] : HIGHLIGHT_NORMAL;
 
-        if (length && !in_string) {
-            if (!strncmp(&row->render_line[i], single_comment_start, length)) {
+        if (scs_length && !in_string) {
+            if (!strncmp(&row->render_line[i], single_comment_start, scs_length)) {
                 memset(&row->highlight[i], HIGHLIGHT_COMMENT, row->render_size - i);
                 break;
+            }
+        }
+        
+        if (mcs_length && mce_length && !in_string) {
+            if (in_comment) {
+                row->highlight[i] = HIGHLIGHT_MULTILINE_COMMENT;
+                if (!strncmp(&row->render_line[i], multiline_comment_end, mce_length)) {
+                    memset(&row->highlight[i], HIGHLIGHT_MULTILINE_COMMENT, mce_length);
+                    i += mce_length;
+                    in_comment = 0;
+                    prev_separation = 1;
+                    continue;
+                } else {
+                    continue;
+                }
+                continue;
+            } else if (!strncmp(&row->render_line[i], multiline_comment_start, mcs_length)) {
+                memset(&row->highlight[i], HIGHLIGHT_MULTILINE_COMMENT, mcs_length);
+                i += mcs_length;
+                in_comment = 1;
+                continue;
             }
         }
 
@@ -334,6 +364,7 @@ void editorUpdateSyntax(editorRow* row) {
 int editorSyntaxToColor(int highlight) {
     switch (highlight) {
         case HIGHLIGHT_COMMENT:
+        case HIGHLIGHT_MULTILINE_COMMENT:
             return 36;
         case HIGHLIGHT_KEYWORD1:
             return 33;
@@ -547,15 +578,15 @@ void editorDrawRows(struct append_buffer* ab) {
                 buffer_append(ab, "~", 1);
             }
         } else {
-            int length = E.row[file_row].render_size - E.col_offset;
-            if (length < 0) length = 0;
-            if (length > E.screen_cols) length = E.screen_cols;
+            int scs_length = E.row[file_row].render_size - E.col_offset;
+            if (scs_length < 0) scs_length = 0;
+            if (scs_length > E.screen_cols) scs_length = E.screen_cols;
             
             char* c = &E.row[file_row].render_line[E.col_offset];
             unsigned char* highlight = &E.row[file_row].highlight[E.col_offset];
             int current_color = -1;
 
-            for (int j = 0; j < length; j++) {
+            for (int j = 0; j < scs_length; j++) {
                 if (iscntrl(c[j])) {
                     char symbol = (c[j] <= 26) ? '@' + c[j] : '?';
                     buffer_append(ab, "\x1b[7m", 4);
@@ -599,7 +630,7 @@ void editorDrawStatusBar(struct append_buffer *ab) {
     char status[80];
     char render_status[80];
 
-    int length = snprintf(
+    int scs_length = snprintf(
         status,
         sizeof(status),
         "%.20s - %d lines %s",
@@ -617,17 +648,17 @@ void editorDrawStatusBar(struct append_buffer *ab) {
         E.num_rows
         );
 
-    if (length > E.screen_cols)
-        length = E.screen_cols;
-    buffer_append(ab, status, length);
+    if (scs_length > E.screen_cols)
+        scs_length = E.screen_cols;
+    buffer_append(ab, status, scs_length);
 
-    while (length < E.screen_cols) {
-        if (E.screen_cols - length == render_length) {
+    while (scs_length < E.screen_cols) {
+        if (E.screen_cols - scs_length == render_length) {
             buffer_append(ab, render_status, render_length);
             break;
         }
         buffer_append(ab, " ", 1);
-        length++;
+        scs_length++;
     }
     buffer_append(ab, "\x1b[m", 3);
     buffer_append(ab, "\r\n", 2);
@@ -685,7 +716,7 @@ char *editorPrompt(char *prompt, void(*callback)(char*, int)) {
     size_t buffer_size = 128;
     char* buffer = malloc(buffer_size);
 
-    size_t length = 0;
+    size_t scs_length = 0;
     buffer[0] = '\0';
 
     while(1) {
@@ -695,8 +726,8 @@ char *editorPrompt(char *prompt, void(*callback)(char*, int)) {
         int c = editorReadKey();
 
         if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
-            if (length != 0) {
-                buffer[--length] = '\0';
+            if (scs_length != 0) {
+                buffer[--scs_length] = '\0';
             }
         } else if (c == '\x1b') {
             editorSetStatusMessage("");
@@ -709,12 +740,12 @@ char *editorPrompt(char *prompt, void(*callback)(char*, int)) {
             return buffer;
         }
         else if (!iscntrl(c) && c < 128) {
-            if (length == buffer_size - 1) {
+            if (scs_length == buffer_size - 1) {
                 buffer_size *= 2;
                 buffer = realloc(buffer, buffer_size);
             }
-            buffer[length++] = c;
-            buffer[length] = '\0'; 
+            buffer[scs_length++] = c;
+            buffer[scs_length] = '\0'; 
         }
         if (callback) callback(buffer, c);
     }
@@ -787,13 +818,13 @@ void editorOpen(char* filename) {
 }
 
 char *editorRowsToString(int *buffer_length) {
-    int length = 0;
+    int scs_length = 0;
     for (int i = 0; i < E.num_rows; i++) {
-        length += E.row[i].size + 1;
+        scs_length += E.row[i].size + 1;
     }
-    *buffer_length = length;
+    *buffer_length = scs_length;
 
-    char* buffer = malloc(length);
+    char* buffer = malloc(scs_length);
     if (!buffer) die("editorRowsToString failed");
 
     char* p = buffer;
@@ -817,17 +848,17 @@ void editorSave() {
         }
         editorSelectSyntaxHighlight();
     }
-    int length;
-    char *buffer = editorRowsToString(&length);
+    int scs_length;
+    char *buffer = editorRowsToString(&scs_length);
 
     int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
     if (fd != -1) {
-        if (ftruncate(fd, length) != -1) {
-        if (write(fd, buffer, length) == length) {
+        if (ftruncate(fd, scs_length) != -1) {
+        if (write(fd, buffer, scs_length) == scs_length) {
             close(fd);
             free(buffer);
             E.dirty = 0;
-            editorSetStatusMessage("%d bytes written to disk", length);
+            editorSetStatusMessage("%d bytes written to disk", scs_length);
             return;
         }
         }
@@ -1046,11 +1077,11 @@ void editorRowDeleteChar(editorRow *row, int at) {
     E.dirty++;
 }
 
-void editorRowAppendString(editorRow *row, char* s, size_t length) {
-    row->line = realloc(row->line, row->size + length + 1);
+void editorRowAppendString(editorRow *row, char* s, size_t scs_length) {
+    row->line = realloc(row->line, row->size + scs_length + 1);
 
-    memcpy(&row->line[row->size], s, length);
-    row->size += length;
+    memcpy(&row->line[row->size], s, scs_length);
+    row->size += scs_length;
     row->line[row->size] = '\0';
     editorUpdateRow(row);
     E.dirty++;
