@@ -81,6 +81,7 @@ void disableRawTerminalMode();
 /*** Syntax Highlighting ***/
 void editorUpdateSyntax(editorRow* row);
 int editorSyntaxToColor(int highlight);
+int isSeparator(int c);
 
 /*** Append Buffer ***/
 struct append_buffer {
@@ -214,12 +215,19 @@ void editorUpdateSyntax(editorRow* row) {
     row->highlight = realloc(row->highlight, row->render_size);
     memset(row->highlight, HIGHLIGHT_NORMAL, row->render_size);
 
+    int prev_separation = 1;
+
     for (int i = 0; i < row->render_size; i++) {
         char c = row->render_line[i];
+        unsigned char prev_highlight = (i > 0) ? row->highlight[i-1] : HIGHLIGHT_NORMAL;
 
-        if (isdigit(c)) {
+        if (isdigit(c) && (prev_separation || prev_highlight == HIGHLIGHT_NUMBER)) {
             row->highlight[i] = HIGHLIGHT_NUMBER;
+            prev_separation = 0;
+            continue;
         }
+
+        prev_separation = isSeparator(c);
     }
 }
 
@@ -232,6 +240,10 @@ int editorSyntaxToColor(int highlight) {
         default:
             return 37;
     }
+}
+
+int isSeparator(int c) {
+    return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
 }
 
 /*** Input ***/
