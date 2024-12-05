@@ -627,9 +627,22 @@ void editorFindCallback(char* query, int key) {
 }
 
 void editorFind() {
+    int saved_x = E.cursor_x;
+    int saved_y = E.cursor_y;
+    int saved_col_offset = E.col_offset;
+    int saved_row_offset = E.row_offest;
+    
     char* query = editorPrompt("Search: %s (ESC to cancel)", editorFindCallback);
+    
     if (query)
         free(query);
+    
+    if (!query) {
+        E.cursor_x = saved_x;
+        E.cursor_y = saved_y;
+        E.col_offset = saved_col_offset;
+        E.row_offest = saved_row_offset;
+    }
 }
 
 void editorInsertRow(int at, char *s, size_t len) {
