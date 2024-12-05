@@ -49,6 +49,8 @@ struct editorConfig {
     char status_message[80];
     time_t status_message_time;
 
+    struct editorSyntax* syntax;
+
     struct termios ORIGINAL_TERMIOS;
 };
 struct editorConfig E;
@@ -170,6 +172,7 @@ void initEditor() {
     E.dirty = 0;
     E.status_message[0] = '\0';
     E.status_message_time = 0;
+    E.syntax = NULL;
     if (getWindowSize(&E.screen_cols, &E.screen_rows) == -1) {
         die("getWindowSize failed");
     }
@@ -237,16 +240,20 @@ void editorUpdateSyntax(editorRow* row) {
     row->highlight = realloc(row->highlight, row->render_size);
     memset(row->highlight, HIGHLIGHT_NORMAL, row->render_size);
 
+    if (E.syntax == NULL) return;
+
     int prev_separation = 1;
 
     for (int i = 0; i < row->render_size; i++) {
         char c = row->render_line[i];
         unsigned char prev_highlight = (i > 0) ? row->highlight[i-1] : HIGHLIGHT_NORMAL;
 
-        if ((isdigit(c) && (prev_separation || prev_highlight == HIGHLIGHT_NUMBER)) || ((c == '.') && (prev_highlight == HIGHLIGHT_NUMBER))) {
-            row->highlight[i] = HIGHLIGHT_NUMBER;
-            prev_separation = 0;
-            continue;
+        if (E.syntax->flags & HIGHLIGHT_NUMBERS) {    
+            if ((isdigit(c) && (prev_separation || prev_highlight == HIGHLIGHT_NUMBER)) || ((c == '.') && (prev_highlight == HIGHLIGHT_NUMBER))) {
+                row->highlight[i] = HIGHLIGHT_NUMBER;
+                prev_separation = 0;
+                continue;
+            }
         }
 
         prev_separation = isSeparator(c);
@@ -485,7 +492,7 @@ void editorDrawStatusBar(struct append_buffer *ab) {
         E.num_rows, 
         E.dirty ? "(modified)" : ""
         );
-    int render_length = snprintf(render_status, sizeof(render_status), "%d/%d", E.cursor_y + 1, E.num_rows);
+    int render_length = snprintf(render_status, sizeof(render_status), "%s %d/%d", E.syntax ? E.syntax->filetype : "no file type", E.cursor_y + 1, E.num_rows);
     if (length > E.screen_cols)
         length = E.screen_cols;
     buffer_append(ab, status, length);
