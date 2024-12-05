@@ -66,7 +66,8 @@ enum editorKey {
 
 enum editorHighlight {
     HIGHLIGHT_NORMAL = 0,
-    HIGHLIGHT_NUMBER
+    HIGHLIGHT_NUMBER,
+    HIGHLIGHT_MATCH
 };
 
 const int TAB_SIZE = 8;
@@ -224,6 +225,8 @@ int editorSyntaxToColor(int highlight) {
     switch (highlight) {
         case HIGHLIGHT_NUMBER:
             return 31;
+        case HIGHLIGHT_MATCH:
+            return 34;
         default:
             return 37;
     }
@@ -704,6 +707,8 @@ void editorFindCallback(char* query, int key) {
             E.cursor_y = current_row;
             E.cursor_x = editorRenderxToCursorx(row, match - row->render_line);
             E.row_offest = E.num_rows;
+
+            memset(&row->highlight[match - row->render_line], HIGHLIGHT_MATCH, strlen(query));
             break;
         }
     }
