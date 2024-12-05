@@ -75,11 +75,13 @@ enum editorKey {
 
 enum editorHighlight {
     HIGHLIGHT_NORMAL = 0,
+    HIGHLIGHT_STRING,
     HIGHLIGHT_NUMBER,
     HIGHLIGHT_MATCH
 };
 
 #define HIGHLIGHT_NUMBERS (1<<0)
+#define HIGHLIGHT_STRINGS (1<<1)
 
 const int TAB_SIZE = 8;
 const int QUIT_TIMES = 3;
@@ -91,7 +93,7 @@ struct editorSyntax HIGHLIGHT_DB[] = {
     {
         "c",
         C_HIGHLIGHT_EXTENSIONS,
-        HIGHLIGHT_NUMBERS
+        HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS
     }
 };
 
@@ -244,10 +246,33 @@ void editorUpdateSyntax(editorRow* row) {
     if (E.syntax == NULL) return;
 
     int prev_separation = 1;
+    int in_string = 0;
 
     for (int i = 0; i < row->render_size; i++) {
         char c = row->render_line[i];
         unsigned char prev_highlight = (i > 0) ? row->highlight[i-1] : HIGHLIGHT_NORMAL;
+
+        if (E.syntax->flags & HIGHLIGHT_STRINGS) {
+            if (in_string) {
+                row->highlight[i] = HIGHLIGHT_STRING;
+                
+                if (c == '\\' && i + 1 == row->render_size) {
+                    row->render_line[i + 1] = HIGHLIGHT_STRING;
+                    i++;
+                    continue;
+                }
+                if (c == in_string)
+                    in_string = 0;
+                prev_separation = 1;
+                continue;
+            } else {
+                if (c == '"' || c == '\'') {
+                    in_string = c;
+                    row->highlight[i] = HIGHLIGHT_STRING;
+                    continue;
+                }
+            }
+        }
 
         if (E.syntax->flags & HIGHLIGHT_NUMBERS) {    
             if ((isdigit(c) && (prev_separation || prev_highlight == HIGHLIGHT_NUMBER)) || ((c == '.') && (prev_highlight == HIGHLIGHT_NUMBER))) {
@@ -265,6 +290,8 @@ int editorSyntaxToColor(int highlight) {
     switch (highlight) {
         case HIGHLIGHT_NUMBER:
             return 31;
+        case HIGHLIGHT_STRING:
+            return 35;
         case HIGHLIGHT_MATCH:
             return 34;
         default:
